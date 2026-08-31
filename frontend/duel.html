@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Duel Mode — AR Chess Arena</title>
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!--
+    ===================================================================
+    DUEL MODE — markerless AR, two players
+    ===================================================================
+    Each player places their own board on a real surface using the WebXR
+    Device API's hit-testing, and the two boards are kept in step over a
+    Socket.IO connection. There is no shared physical space: the players
+    can be in different rooms, in the same way an online quiz game works.
+
+    Why not a shared physical board? Registering two phones to one
+    real-world coordinate system needs a cloud anchor service (Google's
+    Geospatial/Cloud Anchors, Azure Spatial Anchors and so on). No browser
+    API provides it, so it is deliberately out of scope — and documented
+    as such in the technical report.
+  -->
+
+  <!--
+    An import map lets the ES modules below write `import ... from 'three'`
+    while the browser resolves it to a pinned CDN build. The addons path is
+    needed because GLTFLoader itself imports from the bare 'three'
+    specifier — without the map it would fail to resolve.
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+      }
+    }
+  </script>
+
+  <!-- Socket.IO's browser client, exposed as the global `io`. Its major and
+       minor version must match the server's (socket.io 4.8.x). -->
+  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+</head>
+
+<body>
+  <!-- =================================================================
+       AR heads-up display
+       =================================================================
+       This element is handed to WebXR as the session's `domOverlay` root,
+       which is what makes ordinary HTML controls appear over the camera
+       feed during an immersive AR session. Everything the player needs
+       while in AR has to live inside it.
+       ================================================================= -->
+  <div class="ar-overlay" id="arOverlay" hidden>
+    <div class="panel panel--top">
+      <div class="status-row">
+        <h1 class="status-row__title" id="duelTitle">Duel</h1>
+        <span class="status-badge" id="colourBadge">—</span>
+        <span class="status-badge" id="turnBadge">—</span>
+      </div>
+      <p class="status-message" id="duelMessage">Move your phone slowly to find a surface.</p>
+    </div>
+
+    <div class="panel panel--bottom">
+      <div class="slider-row" id="sizeRow" hidden>
+        <span>Size</span>
+        <input type="range" id="sizeSlider" min="25" max="90" value="45" step="1" aria-label="Board size" />
+      </div>
+      <div class="control-row">
+        <button class="button button--primary" id="placeButton" type="button">Place board</button>
+        <button class="button" id="resignButton" type="button">Leave</button>
+        <button class="button button--compact" id="soundButton" type="button" aria-label="Toggle sound">🔊</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- =================================================================
+       Lobby — an ordinary web page, shown before entering AR
+       =================================================================
+       Creating and joining happens here rather than inside the AR session
+       on purpose: typing a room code is far easier with the normal
+       on-screen keyboard than through a WebXR DOM overlay.
+       ================================================================= -->
+  <div class="curtain" id="lobbyScreen">
+    <h1 class="curtain__title">Duel Mode</h1>
+    <p class="curtain__text" id="lobbyMessage">
+      Two players, two phones, two boards — one game. Create a game and share
+      the code, or join a game someone has already created.
+    </p>
+
+    <div class="progress"><div class="progress__fill" id="progressFill"></div></div>
+    <p class="curtain__text" id="lobbyStatus">Loading 3D pieces…</p>
+
+    <div class="curtain__actions" id="lobbyActions">
+      <button class="button button--primary" id="createButton" type="button" disabled>Create a game</button>
+      <div class="field">
+        <input
+          class="field__input"
+          id="codeInput"
+          type="text"
+          inputmode="latin"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          maxlength="4"
+          placeholder="CODE"
+          aria-label="Room code"
+        />
+        <button class="button" id="joinButton" type="button" disabled>Join</button>
+      </div>
+      <button class="button button--primary" id="enterArButton" type="button" hidden>Enter AR</button>
+      <button class="button" id="previewButton" type="button" hidden>Play without AR</button>
+      <a class="button" href="./index.html">Back to menu</a>
+    </div>
+  </div>
+
+  <script type="module" src="./js/duel-scene.js"></script>
+</body>
+</html>

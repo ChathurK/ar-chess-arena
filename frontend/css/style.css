@@ -1,0 +1,495 @@
+/* =========================================================================
+   style.css — shared user interface for AR Chess Arena
+   =========================================================================
+   Both AR modes draw their camera feed full-screen and float a thin layer of
+   controls on top of it. Everything here is therefore built around three
+   ideas:
+
+     1. the interface must never block the camera view more than it has to,
+        so panels hug the top and bottom edges and stay translucent;
+     2. it has to be legible against an unpredictable background — a real room
+        seen through a phone camera — hence the dark scrims and heavy contrast;
+     3. it is touched, not clicked: every control is at least 44 px tall, the
+        size Apple and Google both recommend as the minimum comfortable
+        tap target.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- tokens */
+
+:root {
+  --colour-ink: #12100d;
+  --colour-panel: rgba(18, 16, 13, 0.82);
+  --colour-panel-solid: #1b1814;
+  --colour-parchment: #e8dcc0;
+  --colour-parchment-dim: #b3a88f;
+  --colour-amber: #f0c419;
+  --colour-green: #4caf50;
+  --colour-red: #e05c4a;
+  --colour-blue: #3f7fa8;
+
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --shadow-panel: 0 6px 24px rgba(0, 0, 0, 0.45);
+
+  --font-interface: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------- structure */
+
+* {
+  box-sizing: border-box;
+}
+
+/* The HTML `hidden` attribute is only a default in the browser's own
+   stylesheet, so ANY class that sets `display` — and several below set
+   `display: flex` — silently overrides it. Panels toggled with `element.hidden`
+   would then stay on screen. This rule makes `hidden` mean hidden. */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--colour-ink);
+  color: var(--colour-parchment);
+  font-family: var(--font-interface);
+  /* Stop a long-press on the AR view from selecting text or firing the
+     browser's own context menu, both of which interrupt play. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* The A-Frame / Three.js canvas fills the viewport; everything else floats. */
+.ar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Critical: the overlay must not swallow taps meant for the board. Only
+     the controls inside it re-enable pointer events. */
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 8px) 10px env(safe-area-inset-bottom, 10px);
+}
+
+.ar-overlay > * {
+  pointer-events: auto;
+}
+
+/* ---------------------------------------------------------------- panels */
+
+.panel {
+  background: var(--colour-panel);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(232, 220, 192, 0.14);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: 10px 12px;
+}
+
+.panel--top {
+  margin: 8px auto 0;
+  width: min(560px, calc(100% - 16px));
+}
+
+.panel--bottom {
+  margin: 0 auto 8px;
+  width: min(560px, calc(100% - 16px));
+}
+
+/* ------------------------------------------------------------ status row */
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-row__title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.status-badge {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(232, 220, 192, 0.12);
+  color: var(--colour-parchment-dim);
+  white-space: nowrap;
+}
+
+.status-badge--live {
+  background: rgba(76, 175, 80, 0.22);
+  color: #a5e8a8;
+}
+
+.status-badge--warn {
+  background: rgba(240, 196, 25, 0.2);
+  color: var(--colour-amber);
+}
+
+.status-badge--danger {
+  background: rgba(224, 92, 74, 0.24);
+  color: #ffb3a8;
+}
+
+.status-message {
+  margin: 7px 0 0;
+  font-size: 13.5px;
+  line-height: 1.42;
+  color: var(--colour-parchment-dim);
+}
+
+.status-message strong {
+  color: var(--colour-parchment);
+  font-weight: 650;
+}
+
+/* -------------------------------------------------------------- controls */
+
+.control-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.button {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--colour-parchment);
+  background: rgba(232, 220, 192, 0.1);
+  border: 1px solid rgba(232, 220, 192, 0.22);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.button:active {
+  transform: scale(0.97);
+  background: rgba(232, 220, 192, 0.2);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--colour-amber);
+  border-color: var(--colour-amber);
+  color: var(--colour-ink);
+}
+
+.button--primary:active {
+  background: #ffd642;
+}
+
+.button--compact {
+  flex: 0 0 auto;
+  min-width: 48px;
+  padding: 11px 12px;
+}
+
+/* ----------------------------------------------------------------- forms */
+
+.field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.field__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 17px; /* 16px or more stops iOS Safari zooming in on focus */
+  font-weight: 650;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--colour-parchment);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(232, 220, 192, 0.24);
+  border-radius: var(--radius-control);
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--colour-parchment-dim);
+}
+
+.slider-row input[type='range'] {
+  flex: 1 1 auto;
+  accent-color: var(--colour-amber);
+  height: 28px;
+}
+
+/* --------------------------------------------------------- full screens */
+
+/* Used for the loading screen and any blocking message (no camera, no
+   WebXR support). Sits above the AR overlay so nothing shows through. */
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 35%, #2a241c 0%, #12100d 70%);
+}
+
+.curtain[hidden] {
+  display: none;
+}
+
+.curtain__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.curtain__text {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--colour-parchment-dim);
+}
+
+.curtain__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, 100%);
+  margin-top: 6px;
+}
+
+/* A slim progress bar for model loading. */
+.progress {
+  width: min(260px, 70%);
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(232, 220, 192, 0.15);
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--colour-amber);
+  transition: width 180ms ease;
+}
+
+/* ------------------------------------------------------------ transient */
+
+/* A short-lived message that fades in over the board — "not your turn",
+   "illegal move", "opponent disconnected". */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 132px;
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: min(420px, calc(100% - 32px));
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--colour-ink);
+  background: var(--colour-amber);
+  border-radius: 999px;
+  box-shadow: var(--shadow-panel);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.toast--visible {
+  opacity: 1;
+}
+
+.toast--danger {
+  background: var(--colour-red);
+  color: #fff;
+}
+
+.toast--success {
+  background: var(--colour-green);
+  color: #06210a;
+}
+
+/* ------------------------------------------------------------ landing page */
+
+/* index.html is an ordinary scrolling page rather than an AR view. */
+body.page--landing {
+  overflow: auto;
+  background: radial-gradient(circle at 50% 0%, #2e2720 0%, #12100d 65%);
+}
+
+.landing {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 40px 20px 56px;
+}
+
+.landing__header {
+  text-align: center;
+  max-width: 46ch;
+}
+
+.landing__title {
+  margin: 0 0 6px;
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+
+.landing__title span {
+  color: var(--colour-amber);
+}
+
+.landing__subtitle {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--colour-parchment-dim);
+}
+
+.mode-grid {
+  display: grid;
+  gap: 16px;
+  width: min(760px, 100%);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 700px) {
+  .mode-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(232, 220, 192, 0.06);
+  border: 1px solid rgba(232, 220, 192, 0.16);
+  border-radius: 18px;
+  transition: background 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+
+.mode-card:hover,
+.mode-card:focus-visible {
+  background: rgba(232, 220, 192, 0.1);
+  border-color: rgba(240, 196, 25, 0.55);
+  transform: translateY(-2px);
+}
+
+.mode-card__tag {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(240, 196, 25, 0.18);
+  color: var(--colour-amber);
+}
+
+.mode-card__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mode-card__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--colour-parchment-dim);
+}
+
+.mode-card__requirement {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: rgba(232, 220, 192, 0.5);
+}
+
+.landing__note {
+  width: min(760px, 100%);
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--colour-parchment-dim);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(232, 220, 192, 0.12);
+  border-radius: 14px;
+}
+
+.landing__note h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--colour-parchment);
+}
+
+.landing__note ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.landing__note li + li {
+  margin-top: 4px;
+}
+
+.landing__note a {
+  color: var(--colour-amber);
+}
+
+/* Hide A-Frame's own VR button: this project is AR-only and the button just
+   confuses people. */
+.a-enter-vr,
+.a-enter-ar {
+  display: none !important;
+}

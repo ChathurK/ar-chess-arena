@@ -1,0 +1,21 @@
+{
+  "name": "ar-chess-arena-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Server-authoritative Socket.IO relay for AR Chess Arena's Duel Mode.",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "chess.js": "1.4.0",
+    "cors": "2.8.6",
+    "express": "4.22.2",
+    "socket.io": "4.8.3"
+  }
+}

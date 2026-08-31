@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AR Chess Arena</title>
+  <meta
+    name="description"
+    content="Browser-based augmented reality chess: a marker-based puzzle mode and a markerless two-player duel, built with A-Frame, AR.js, Three.js and WebXR."
+  />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body class="page--landing">
+  <main class="landing">
+    <header class="landing__header">
+      <h1 class="landing__title">AR Chess <span>Arena</span></h1>
+      <p class="landing__subtitle">
+        Chess in augmented reality, entirely in the browser. Two modes, two
+        different ways of anchoring a board to the real world.
+      </p>
+    </header>
+
+    <nav class="mode-grid">
+      <!-- Each card names the tracking type it demonstrates, because the two
+           modes exist precisely to cover both halves of that requirement. -->
+      <a class="mode-card" href="./puzzle.html">
+        <span class="mode-card__tag">Marker-based</span>
+        <h2 class="mode-card__title">Puzzle Mode</h2>
+        <p class="mode-card__text">
+          Point your camera at a printed marker and a board appears standing on
+          it, set up in a checkmate puzzle. Solve it within the move budget.
+        </p>
+        <p class="mode-card__requirement">Needs: a camera and the Hiro marker.</p>
+      </a>
+
+      <a class="mode-card" href="./duel.html">
+        <span class="mode-card__tag">Markerless</span>
+        <h2 class="mode-card__title">Duel Mode</h2>
+        <p class="mode-card__text">
+          Place a board on any flat surface using spatial tracking, then play a
+          full game against a friend on their own device, moves syncing live.
+        </p>
+        <p class="mode-card__requirement">Needs: WebXR (Chrome on Android) and two players.</p>
+      </a>
+    </nav>
+
+    <section class="landing__note">
+      <h2>Before you start</h2>
+      <ul>
+        <li>
+          Both modes need <strong>HTTPS</strong> and camera permission — browsers
+          will not hand a page the camera over plain HTTP.
+        </li>
+        <li>
+          Puzzle Mode works on most phones. Duel Mode's board placement needs
+          WebXR hit-testing, which today means Chrome on a recent Android
+          device; it also offers a non-AR view so you can play on a laptop.
+        </li>
+        <li>
+          Puzzle Mode needs the marker —
+          <a href="./assets/markers/marker.html" target="_blank" rel="noopener">open it here</a>
+          to print it or show it on another screen.
+        </li>
+        <li>
+          In Duel Mode each player places their own board in their own room. The
+          boards are not in a shared physical space; the game is what is shared.
+        </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

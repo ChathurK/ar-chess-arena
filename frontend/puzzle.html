@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Puzzle Mode — AR Chess Arena</title>
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!--
+    ===================================================================
+    PUZZLE MODE — marker-based AR
+    ===================================================================
+    Point the camera at a Hiro marker and a chessboard appears standing on
+    it, set up in a position that is checkmate in a fixed number of moves.
+
+    Library versions are pinned deliberately. A-Frame is held at 1.5.0
+    rather than the newer 1.8.x because AR.js is not actively tracking
+    A-Frame's latest releases, and 1.5.0 is the most recent version the
+    AR.js 3.4.x line is reliably compatible with.
+
+    AR.js is loaded from a version-pinned npm CDN path rather than the
+    `raw.githack.com/.../master/` URL most tutorials use — that URL always
+    serves whatever is on the master branch, which means a project that
+    works today can break tomorrow with no change of its own.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
+</head>
+
+<body>
+  <!--
+    The AR scene itself. `embedded` keeps A-Frame inside the normal document
+    flow so the HTML overlay can sit on top of it, and the VR button is
+    turned off because this project is AR-only.
+  -->
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+    renderer="antialias: true; alpha: true; colorManagement: true; sortObjects: true"
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.5; trackingMethod: best"
+  >
+    <!--
+      The board is attached to this marker at runtime by puzzle-scene.js.
+      The smoothing attributes trade a few frames of latency for a board
+      that stops jittering when the phone is held by hand — without them
+      the pieces visibly shiver, which looks broken even when it is not.
+    -->
+    <a-marker
+      id="chessMarker"
+      preset="hiro"
+      smooth="true"
+      smoothCount="8"
+      smoothTolerance="0.01"
+      smoothThreshold="4"
+    ></a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <!-- =================================================================
+       Interface layer — floats above the camera feed
+       ================================================================= -->
+  <div class="ar-overlay" id="arOverlay">
+    <div class="panel panel--top">
+      <div class="status-row">
+        <h1 class="status-row__title" id="puzzleTitle">Loading puzzle…</h1>
+        <span class="status-badge" id="movesBadge">— / —</span>
+        <span class="status-badge" id="stateBadge">Starting</span>
+      </div>
+      <p class="status-message" id="statusMessage">
+        Point your camera at the Hiro marker to place the board.
+      </p>
+    </div>
+
+    <div class="panel panel--bottom">
+      <div class="control-row">
+        <button class="button" id="hintButton" type="button">Hint</button>
+        <button class="button" id="retryButton" type="button">Retry</button>
+        <button class="button button--primary" id="nextButton" type="button">Next puzzle</button>
+        <button class="button button--compact" id="soundButton" type="button" aria-label="Toggle sound">🔊</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- =================================================================
+       Loading curtain — also the tap that unlocks audio
+       =================================================================
+       Mobile browsers will not start an AudioContext until the user has
+       interacted with the page, so the "Start" button doubles as the
+       required gesture. -->
+  <div class="curtain" id="loadingCurtain">
+    <h1 class="curtain__title">Puzzle Mode</h1>
+    <p class="curtain__text">
+      Marker-based AR. You will need the Hiro marker printed out, or shown on
+      another screen. Your browser will ask for camera permission.
+    </p>
+    <div class="progress"><div class="progress__fill" id="progressFill"></div></div>
+    <p class="curtain__text" id="loadingText">Loading 3D pieces…</p>
+    <div class="curtain__actions">
+      <button class="button button--primary" id="startButton" type="button" disabled>Start</button>
+      <a class="button" href="./index.html">Back to menu</a>
+      <a class="button" href="./assets/markers/marker.html" target="_blank" rel="noopener">Show the marker</a>
+    </div>
+  </div>
+
+  <script type="module" src="./js/puzzle-scene.js"></script>
+</body>
+</html>

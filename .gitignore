@@ -1,0 +1,20 @@
+# Dependencies — restored with `npm install`, never committed.
+node_modules/
+
+# Logs and process noise
+npm-debug.log*
+*.log
+
+# Environment and secrets. The backend reads ALLOWED_ORIGINS and PORT from the
+# environment; on Render they are set in the dashboard, not in a file.
+.env
+.env.*
+
+# Editor and operating-system clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local scratch output (rendered previews, experiments)
+/tmp-output/

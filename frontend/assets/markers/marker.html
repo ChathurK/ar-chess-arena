@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hiro marker — AR Chess Arena</title>
+  <style>
+    /* A deliberately plain page: its whole job is to put a crisp, high-contrast
+       marker on screen or on paper. Anything decorative near the marker risks
+       confusing the detector, so the area around it is kept empty and white. */
+    body {
+      margin: 0;
+      padding: 28px 20px 40px;
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      color: #1b1814;
+      background: #fff;
+      text-align: center;
+    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p  { max-width: 46ch; margin: 0 auto 8px; font-size: 14px; line-height: 1.55; color: #555; }
+    .marker-frame {
+      display: inline-block;
+      margin: 24px auto;
+      padding: 26px;           /* the white quiet zone the detector needs */
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+    .marker-frame img { display: block; width: 260px; height: 260px; image-rendering: pixelated; }
+    .fallback { display: none; font-size: 13px; color: #b00; max-width: 46ch; margin: 0 auto; }
+    .fallback a { color: #b00; }
+    @media print {
+      /* Printing should produce the marker and nothing else. */
+      p, h1, .fallback { display: none; }
+      .marker-frame { border: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Hiro marker</h1>
+  <p>
+    Print this page, or open it on a second screen (a laptop or tablet works
+    well), then point Puzzle Mode's camera at the marker. The board appears
+    standing on it.
+  </p>
+  <p>
+    Keep the white border around the marker clear, hold the phone 20–50&nbsp;cm
+    away, and avoid strong glare — reflections on a glossy screen are the most
+    common reason tracking fails.
+  </p>
+
+  <div class="marker-frame">
+    <!--
+      The Hiro pattern is the marker AR.js recognises out of the box via
+      `preset="hiro"`, so no pattern file has to be trained or shipped. The
+      image itself is served from the AR.js repository; if it ever fails to
+      load, the message below points at alternatives.
+    -->
+    <img
+      src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+      alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
+      onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';"
+    />
+  </div>
+
+  <p class="fallback">
+    The marker image could not be loaded. Search the web for
+    &ldquo;AR.js Hiro marker&rdquo; and display any copy of it — every copy of
+    the Hiro pattern is identical, so any of them will be recognised.
+  </p>
+</body>
+</html>
