@@ -27,18 +27,17 @@
  *   create-room → waiting (one player) → playing (two players)
  *              → removed when a player leaves, disconnects, or the room goes idle
  *
- * Rooms live in memory only. That is a deliberate scope decision for this phase
- * of the project: the assignment's advanced-feature requirement is satisfied by
- * the complex interaction, not by persistence, and a restart simply means
- * players create a new room. The one clean extension point is `onGameFinished`
- * below — a database layer would hook in exactly there and nowhere else.
+ * Rooms live in memory only. This is an intentional design choice for this phase 
+ * of the project: a restart simply means players create a new room. The one clean 
+ * extension point is onGameFinished — a database layer would hook in exactly there 
+ * and nowhere else.
  */
 
 const { Chess } = require('chess.js');
 const { generateRoomCode, normaliseRoomCode } = require('../utils/roomCodes');
 
 /** Rooms with no traffic for this long are collected, freeing memory. */
-const IDLE_ROOM_TIMEOUT_MS = 2 * 60 * 60 * 1000; // two hours
+const IDLE_ROOM_TIMEOUT_MS = 1 * 60 * 60 * 1000; // one hour
 const IDLE_SWEEP_INTERVAL_MS = 10 * 60 * 1000; // every ten minutes
 
 /**
