@@ -15,7 +15,8 @@
  *   2. every element id a script looks up exists in the page that loads it;
  *   3. every local href/src in the HTML points at a file that exists;
  *   4. every CSS class used in the HTML is defined in the stylesheet;
- *   5. every piece model named in config.js is actually present;
+ *   5. every piece model named in config.js is present in the directory
+ *      config.js actually points MODEL_BASE_PATH at;
  *   6. every third-party URL is pinned to an exact version.
  */
 
@@ -201,11 +202,20 @@ async function checkModelFilesArePresent() {
   );
   assert.equal(modelFileNames.length, 6, 'config.js should name exactly six piece models');
 
+  // The directory is read from config rather than hardcoded, because the
+  // project ships two interchangeable model sets — the generated one and the
+  // imported one — and switching between them is meant to be a MODEL_BASE_PATH
+  // change alone. A hardcoded path here would keep checking the set that is no
+  // longer being served, and pass while the deployed one was missing.
+  const basePathMatch = configSource.match(/MODEL_BASE_PATH\s*=\s*'([^']+)'/);
+  assert.ok(basePathMatch, 'config.js should define MODEL_BASE_PATH');
+  const modelDirectory = basePathMatch[1].replace(/^\.\//, '').replace(/\/$/, '');
+
   let missingModelCount = 0;
   for (const modelFileName of modelFileNames) {
-    const modelPath = `assets/models/${modelFileName}`;
+    const modelPath = `${modelDirectory}/${modelFileName}`;
     if (!(await fileExists(modelPath))) {
-      reportProblem(`config.js names ${modelFileName}, which is not in assets/models/`);
+      reportProblem(`config.js names ${modelFileName}, which is not in ${modelDirectory}/`);
       missingModelCount += 1;
       continue;
     }
@@ -217,7 +227,7 @@ async function checkModelFilesArePresent() {
   }
 
   if (missingModelCount === 0) {
-    reportPass(`all six piece models are present and plausibly sized`);
+    reportPass(`all six piece models are present and plausibly sized in ${modelDirectory}/`);
   }
 }
 

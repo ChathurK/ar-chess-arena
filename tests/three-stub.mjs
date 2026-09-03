@@ -108,13 +108,17 @@ class StubGroup extends StubObject3D {}
 
 class StubMaterial {
   constructor(options = {}) {
+    this.name = options.name ?? '';
     this.color = new StubColour(options.color ?? 0xffffff);
     this.roughness = options.roughness;
     this.metalness = options.metalness;
     this.wasDisposed = false;
   }
   clone() {
-    return new StubMaterial({ color: this.color.getHex() });
+    // Real Three.js carries `name` across a material clone, and piece-loader.js
+    // relies on that to tell a piece's accent from its body, so the stub has to
+    // do it too or it would pass a test the browser fails.
+    return new StubMaterial({ name: this.name, color: this.color.getHex() });
   }
   dispose() {
     this.wasDisposed = true;

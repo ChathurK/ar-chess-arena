@@ -1,8 +1,6 @@
 # AR Chess Arena
 
-Browser-based augmented reality chess, built for **INTE 42312 — Virtual and
-Augmented Reality** (University of Kelaniya). Two modes, chosen so that each
-demonstrates one of the two tracking types the assignment requires.
+A browser-based AR chess project built for Virtual and Augmented Reality. It has two modes, each showcasing a different tracking type.
 
 | Mode | Tracking | What it is |
 |---|---|---|
@@ -17,7 +15,7 @@ demonstrates one of the two tracking types the assignment requires.
 |---|---|
 | Browser-based WebXR/WebAR, mobile-compatible | `frontend/puzzle.html` (AR.js) and `frontend/duel.html` (WebXR Device API) |
 | Approved framework | A-Frame 1.5.0 + AR.js 3.4.8, and Three.js 0.185.1 |
-| At least two 3D models, web-optimised | Six procedurally generated `.glb` pieces, 9–28 KB each — `scripts/generate_chess_pieces.py` |
+| At least two 3D models, web-optimised | Six `.glb` pieces, 18–32 KB each, extracted and decimated from a CC-BY set (309,796 → 7,638 triangles) by `scripts/extract_chess_pieces.py`; a self-authored set is also included |
 | XR/AR user interface | Heads-up display over the camera feed in both modes: status, move budget, room code, board size, sound |
 | Animation | Pieces arc between squares; captured pieces shrink away — `frontend/js/board-view.js` |
 | Lighting | Hemisphere fill plus a directional key, tuned for a bright camera feed — `board-builder.js` |
@@ -52,22 +50,62 @@ ar-chess-arena/
 │   │   ├── puzzle-scene.js       Puzzle Mode glue
 │   │   └── duel-scene.js         Duel Mode glue (WebXR + Socket.IO)
 │   └── assets/
-│       ├── models/               pawn/rook/knight/bishop/queen/king .glb
+│       ├── models-imported/      the set in use: CC-BY, + ATTRIBUTION.md
+│       ├── models/               the self-authored fallback set
 │       └── markers/              marker.html (printable) + notes
 ├── backend/                      Socket.IO relay → Render
 │   ├── server.js                 Express + HTTP server + Socket.IO
 │   ├── socket/chessRelay.js      rooms, authoritative validation, the event contract
 │   └── utils/roomCodes.js        short unambiguous room codes
 ├── scripts/
+│   ├── extract_chess_pieces.py   extracts + optimises the imported set
 │   ├── generate_chess_pieces.py  procedural model generation (trimesh)
 │   └── find_puzzles.mjs          searches for provably correct puzzles
 ├── tests/
 │   ├── verify-puzzles.mjs        re-proves every shipped puzzle
 │   ├── board-logic-test.mjs      board mapping and move rendering, headless
+│   ├── piece-tinting-test.mjs    two-tone tinting, for both piece sets
 │   ├── frontend-static-check.mjs catches broken imports, paths and element ids
 │   └── relay-integration-test.mjs real server, real sockets, real games
 └── docs/                         notes for the technical report
 ```
+
+---
+
+## The two piece sets
+
+Two complete, interchangeable sets of piece models ship with the project.
+
+| | `models-imported/` (in use) | `models/` (fallback) |
+|---|---|---|
+| Origin | CC-BY set by Verfassen, extracted and optimised | authored by this project's own script |
+| Attribution | **required** — README, landing page, report | none |
+| Six models | 7,638 triangles, 146 KB | 6,588 triangles, 122 KB |
+| Full 32-piece board | 35,328 triangles | 39,680 triangles |
+| Meshes per piece | two: `body` + `accent` | one |
+
+Switching between them is one line — `MODEL_BASE_PATH` in
+`frontend/js/config.js`. Nothing else changes: both sets use the same six
+filenames and the same conventions (one unit per square, origin at the centre
+of the base, +Z facing), and `piece-loader.js` tints a piece's `accent` mesh
+separately when it has one and treats everything else as body when it does not.
+The static check reads `MODEL_BASE_PATH` too, so it verifies whichever set is
+actually being served.
+
+If you switch back to `models/`, remove the attribution from the landing page
+and the Credits section below — an unused credit is its own kind of wrong.
+
+To regenerate either set:
+
+```bash
+python scripts/extract_chess_pieces.py --source path/to/chess.glb
+python scripts/generate_chess_pieces.py
+```
+
+`extract_chess_pieces.py` takes `--preset mobile|high|source` (the default,
+`mobile`, is what is committed; `high` suits Puzzle Mode, which only ever shows
+a handful of pieces) and `--king-height` to rescale the whole set. It requires
+`pip install trimesh numpy fast_simplification`.
 
 ---
 
@@ -125,8 +163,9 @@ build at a different relay without editing code.
 
 ```bash
 npm install        # in the project root, for the tooling
-npm test           # puzzles + relay
+npm test           # all five suites
 node tests/board-logic-test.mjs
+node tests/piece-tinting-test.mjs
 node tests/frontend-static-check.mjs
 ```
 
@@ -201,11 +240,25 @@ clients have drifted apart, and cannot arbitrate two simultaneous taps. Each
 room owns a `chess.js` instance; the client's copy exists only to highlight
 legal moves instantly while the player is choosing.
 
-**Why the pieces are generated, not downloaded.** Sourcing usable 3D assets
-means auditing licences and, in practice, hitting sites that need an account to
-download. Chess pieces are solids of revolution, so generating them from a 2D
-silhouette is straightforward, self-authored, and produces files small enough
-(9–28 KB) to load instantly over mobile data.
+**Why an imported model still needs a pipeline.** The pieces served today come
+from a CC-BY chess set, but nothing about that set was usable as downloaded: it
+is one 9.3 MB scene holding a whole board, 309,796 triangles, carrying UV
+coordinates for textures it does not have. Dropped in as-is it would put about
+308,000 triangles on screen for a full board — roughly eight times what the
+self-authored set costs — on a phone that is already decoding a camera feed and
+running spatial tracking. `scripts/extract_chess_pieces.py` is what makes it
+usable: it identifies the 32 pieces by where they stand on the board, keeps one
+of each type, decimates each to a face budget, drops the unused UV channel and
+re-origins everything to this project's conventions. A full board now costs
+35,328 triangles and the six files total 146 KB.
+
+**Why a self-authored set exists as well.** It was built first, precisely
+because sourcing assets is unreliable — licences to audit, downloads behind
+authentication. Chess pieces are solids of revolution, so generating them from a
+2D silhouette is straightforward and produces files small enough (9–28 KB) to
+load instantly. It remains in the repository as a fallback that carries no
+attribution obligation, and switching between the two sets is one line of
+config.
 
 **Why the puzzles are searched for, not written down.** Puzzle correctness is
 easy to get subtly wrong. `scripts/find_puzzles.mjs` proves each position is a
@@ -244,8 +297,17 @@ and requires no change anywhere else in the codebase.
 
 ## Credits and licensing
 
-* 3D piece models: generated by this project's own script; no third-party
-  assets, no attribution required.
+* **3D piece models: "Chess" by [Verfassen](https://sketchfab.com/verfassen),
+  licensed [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/), modified.**
+  The original is a single scene holding a whole set-up board; the six pieces
+  served here were extracted from it, reduced in detail and re-exported by
+  `scripts/extract_chess_pieces.py`. See
+  `frontend/assets/models-imported/ATTRIBUTION.md`.
+* A second, self-authored piece set is also included, in
+  `frontend/assets/models/`, generated by `scripts/generate_chess_pieces.py`.
+  It carries no attribution obligation and can be switched to at any time —
+  see [The two piece sets](#the-two-piece-sets).
+* Board geometry: generated procedurally at runtime.
 * Sound: synthesised at runtime; no audio files are shipped.
 * Libraries: A-Frame (MIT), AR.js (MIT), Three.js (MIT), chess.js (BSD-2),
   Socket.IO (MIT), Express (MIT) — all loaded from pinned versions.

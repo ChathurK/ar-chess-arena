@@ -370,7 +370,7 @@ body.page--landing {
 
 .landing__header {
   text-align: center;
-  max-width: 46ch;
+  max-width: 50ch;
 }
 
 .landing__title {
@@ -394,7 +394,7 @@ body.page--landing {
 .mode-grid {
   display: grid;
   gap: 16px;
-  width: min(760px, 100%);
+  width: min(1024px, 100%);
   grid-template-columns: 1fr;
 }
 
@@ -449,6 +449,18 @@ body.page--landing {
   color: var(--colour-parchment-dim);
 }
 
+.mode-card__list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--colour-parchment-dim);
+}
+
+.mode-card__list li + li {
+  margin-top: 4px;
+}
+
 .mode-card__requirement {
   margin: 4px 0 0;
   font-size: 12.5px;
@@ -485,6 +497,29 @@ body.page--landing {
 
 .landing__note a {
   color: var(--colour-amber);
+}
+
+/* Attribution for the CC-BY piece models. Quieter than the rest of the page —
+   it has to be genuinely present and readable, which the licence requires, but
+   it is not what anyone came here for. */
+.landing__credit {
+  width: min(760px, 100%);
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(232, 220, 192, 0.45);
+  text-align: center;
+}
+
+.landing__credit p {
+  margin: 0;
+}
+
+.landing__credit p + p {
+  margin-top: 2px;
+}
+
+.landing__credit a {
+  color: rgba(232, 220, 192, 0.7);
 }
 
 /* Hide A-Frame's own VR button: this project is AR-only and the button just

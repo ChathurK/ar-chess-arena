@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "puzzles:find": "node scripts/find_puzzles.mjs",
-    "test": "npm run puzzles:verify && npm run test:board && npm run test:static && npm run test:relay",
+    "test": "npm run puzzles:verify && npm run test:board && npm run test:tint && npm run test:static && npm run test:relay",
     "puzzles:verify": "node tests/verify-puzzles.mjs",
     "test:board": "node tests/board-logic-test.mjs",
+    "test:tint": "node tests/piece-tinting-test.mjs",
     "test:static": "node tests/frontend-static-check.mjs",
     "test:relay": "node tests/relay-integration-test.mjs"
   },

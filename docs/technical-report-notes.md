@@ -78,12 +78,23 @@ facts, every broadcast carries the full FEN. Discussed further in §4.
 
 ## 3. Implementation details worth citing
 
-* **Six models, twelve pieces.** Each `.glb` is exported in a neutral ivory and
+* **Six models, twelve pieces.** Each `.glb` is exported in a neutral colour and
   tinted at runtime, halving download size. Cloning shares materials, so all
   sixteen white pawns cost one material between them.
-* **Model sizes.** pawn 27.7 KB, rook 13.6 KB, knight 9.2 KB, bishop 26.3 KB,
-  queen 25.7 KB, king 19.7 KB — 122 KB for the whole set. Face counts range
-  from 460 (knight) to 1520 (pawn).
+* **Two tones per piece, still six files.** Each imported model is split into a
+  `body` mesh and an `accent` mesh, tinted from separate colours, so the metal
+  rings and finials read as metal rather than as painted wood. Only the colour
+  is overridden; the metalness and roughness the model was authored with are
+  left alone. Anything not identifiable as an accent is treated as body, which
+  is what lets the single-mesh self-authored set run through the same code with
+  no special case.
+* **Model sizes, imported set (in use).** pawn 17.8 KB, rook 21.2 KB, knight
+  30.3 KB, bishop 19.3 KB, queen 30.9 KB, king 26.4 KB — 146 KB for the set,
+  7,638 triangles, 35,328 for a full 32-piece board.
+* **Model sizes, self-authored set (fallback).** pawn 27.7 KB, rook 13.6 KB,
+  knight 9.2 KB, bishop 26.3 KB, queen 25.7 KB, king 19.7 KB — 122 KB, 6,588
+  triangles, 39,680 for a full board. Face counts range from 460 (knight) to
+  1520 (pawn).
 * **Audio is synthesised, not sampled.** A filtered noise burst plus a low
   triangle wave reads as a wooden knock; the capture sound is the same idea
   lower and longer. No audio files ship, so there is no licence to document.
@@ -159,22 +170,65 @@ browser actually loads, on every test run.
 *Result.* Three verified puzzles: "The Queen's Escort" (K+Q, key move Ke6),
 "Rook Ladder" (K+R+R, Ra2+), "Cornered" (K+R+R vs K+P, Kf7).
 
-### 4.4 Sourcing 3D assets was a dead end
+### 4.4 A downloaded 3D asset is not a usable 3D asset
 
-*Challenge.* An earlier iteration of this project lost real time trying to
-source thematically specific models: downloads behind authentication, unclear
-or attribution-heavy licences, inconsistent scale and orientation.
+*Background.* The project first solved its asset problem by avoiding it. An
+earlier iteration had lost real time sourcing models — downloads behind
+authentication, unclear licences, inconsistent scale and orientation — so the
+pieces were generated instead: chess pieces are almost all solids of
+revolution, and a 2D silhouette spun around the vertical axis with `trimesh`
+produces presentable geometry with no licensing risk at all. That set still
+ships, and remains the fallback.
 
-*Solution.* Generate them. Chess pieces are almost all solids of revolution, so
-a 2D silhouette spun around the vertical axis with `trimesh` produces genuinely
-presentable geometry. The knight — the one piece that is not a solid of
-revolution — is assembled from a tilted slab, a skull and a muzzle; it only has
-to be unmistakably different from the other five at a glance, which the
-forward-leaning profile achieves.
+*Challenge.* A better-looking CC-BY set was then found, and none of it was
+usable as downloaded. The file is not six models; it is one 9.3 MB scene
+holding a complete set-up board — 32 pre-placed pieces plus the board, 309,796
+triangles, with UV coordinates on all 172,808 vertices and no textures to
+sample with them. Dropped in as-is it would put 308,000 triangles on screen for
+a full board, roughly eight times what the generated set costs, on a phone
+already decoding a camera feed and running spatial tracking. The included board
+is unusable for a different reason: all 32 light squares are a single
+64-triangle mesh sharing one material, so per-square highlighting — selection,
+legal moves, check — is impossible without rebuilding it, which is what the
+procedural board already does.
 
-*Verification.* Every exported model is reloaded and checked for NaN vertices,
-zero faces, the requested height, a base sitting exactly on y = 0, and a width
-that fits inside one square — all before it is wired into the frontend.
+*Solution.* A second pipeline, `scripts/extract_chess_pieces.py`, that turns the
+download into something this project can serve. It identifies all 32 pieces by
+where they stand on the board rather than by name — the source names are
+modelling-tool leftovers like `Circle.027`, but a set-up chess board identifies
+every piece by square, which is a property of chess and not of one file — keeps
+one instance of each type, splits body from accent, decimates to a face budget,
+strips the dead UV channel, and rescales the whole set by one factor so the
+artist's proportions survive.
+
+*The bug worth reporting.* Naive decimation silently decapitated the pawn. These
+pieces are not single surfaces: each is a stack of separate closed shells, body
+segments alternating with metal rings, and a pawn body alone is seven of them.
+Handed the whole stack, quadric decimation spends the budget on the largest
+shells and deletes the small ones outright — the pawn came out 30% shorter with
+its head simply gone. Decimating per connected component fixes it. A second,
+subtler case: the pawn's open-bottomed base has a 52-edge rim, and quadric
+decimation pins boundary edges, so asked for 141 faces it returned 637 every
+time. Capping each rim before decimating releases it — about 8,000 triangles
+across sixteen pawns.
+
+*Result.* 309,796 triangles to 7,638 for the six models; a full board from
+308,208 to 35,328, which is below what the generated set costs. 9.3 MB to
+146 KB.
+
+*Verification.* Both pipelines reload every exported model and check it for NaN
+vertices, zero faces, the requested height, a base sitting exactly on y = 0, and
+a width that fits inside one square, before it is wired into the frontend. The
+height check is what caught the decapitated pawn. The extraction script adds two
+checks the imported path needs: that the body/accent split survived the round
+trip, and that the UV channel really is gone.
+
+*Licensing, which generated assets do not have.* CC-BY is satisfied by crediting
+the author wherever the work is used, not by noting it in a repository. The
+script reads the licence and author out of the source file's own metadata rather
+than from a web page that may since have been edited, and writes an
+`ATTRIBUTION.md` beside the models. The credit appears in the README, on the
+landing page every visitor passes through, and here.
 
 ### 4.5 A-Frame and Three.js each bundle their own Three.js
 
