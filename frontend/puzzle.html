@@ -56,16 +56,13 @@
     ></a-marker>
 
     <!--
-      The tap-to-select ray. `rayOrigin: mouse` (A-Frame's `cursor` component)
-      points the ray at wherever the pointer is — mouse or touch — rather
-      than the camera's forward gaze, and drives it from the SAME camera
-      object AR.js keeps updated every frame, which a hand-rolled raycaster
-      built from a separately-fetched camera reference is not guaranteed to.
-      `fuse: false` fires on tap immediately instead of after a gaze delay.
+      The AR camera. Tap-to-select is handled in puzzle-scene.js by listening
+      directly on the render canvas and picking with the same
+      camera-unprojection method Duel Mode uses, rather than through
+      A-Frame's `cursor`/`raycaster` components — see the comment above
+      `handleCanvasPointerDown` in puzzle-scene.js for why.
     -->
-    <a-entity camera>
-      <a-entity id="tapCursor" cursor="fuse: false; rayOrigin: mouse" raycaster="far: 50; interval: 0"></a-entity>
-    </a-entity>
+    <a-entity camera></a-entity>
   </a-scene>
 
   <!-- =================================================================

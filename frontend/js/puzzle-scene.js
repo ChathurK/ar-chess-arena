@@ -30,12 +30,24 @@
  */
 
 import { ChessEngine } from './chess-engine.js';
-import { FlatPieceLoader } from './flat-piece-loader.js';
+import { PieceLoader } from './piece-loader.js';
 import { BoardView } from './board-view.js';
 import { createSceneLighting } from './board-builder.js';
 import { PUZZLES } from './puzzles.js';
 import { BOARD_SCALE } from './config.js';
 import { gameAudio } from './audio.js';
+
+/**
+ * How far the board is tipped back around the X axis, in degrees.
+ *
+ * Marker-based AR is usually viewed from close to directly above the board,
+ * which foreshortens the real 3D piece models down to their crowns — a
+ * bishop and a pawn silhouette almost the same from straight overhead. A
+ * small permanent tilt keeps the board readable as a marker (still close to
+ * flat) while opening the pieces up enough that their shapes stay
+ * distinguishable no matter the angle the phone happens to be held at.
+ */
+const BOARD_TILT_DEGREES = 18;
 
 /* ------------------------------------------------------------------------ *
  * Page elements
@@ -44,7 +56,6 @@ import { gameAudio } from './audio.js';
 const pageElements = {
   scene: document.querySelector('a-scene'),
   marker: document.getElementById('chessMarker'),
-  tapCursor: document.getElementById('tapCursor'),
   overlay: document.getElementById('arOverlay'),
   title: document.getElementById('puzzleTitle'),
   movesBadge: document.getElementById('movesBadge'),
@@ -169,18 +180,31 @@ async function initialisePuzzleMode() {
 
   // A-Frame bundles its own Three.js build. Using this exact namespace —
   // rather than importing Three.js again — is what keeps the shared modules
-  // compatible with the A-Frame scene graph.
+  // compatible with the A-Frame scene graph. Its GLTFLoader is pulled from
+  // the same namespace for the same reason: mixing objects built by two
+  // different Three.js instances in one scene graph is what the shared
+  // loaders are explicitly written to avoid.
   const THREE = AFRAME.THREE;
+  const GLTFLoader = THREE.GLTFLoader;
 
-  puzzleSession.pieceLoader = new FlatPieceLoader({ THREE });
+  puzzleSession.pieceLoader = new PieceLoader({ THREE, GLTFLoader });
 
-  await puzzleSession.pieceLoader.loadAllPieces((loadedCount, totalCount) => {
-    pageElements.progressFill.style.width = `${(loadedCount / totalCount) * 100}%`;
-    pageElements.loadingText.textContent = `Preparing pieces… ${loadedCount} of ${totalCount}`;
-  });
+  try {
+    await puzzleSession.pieceLoader.loadAllPieces((loadedCount, totalCount) => {
+      pageElements.progressFill.style.width = `${(loadedCount / totalCount) * 100}%`;
+      pageElements.loadingText.textContent = `Preparing pieces… ${loadedCount} of ${totalCount}`;
+    });
+  } catch (loadError) {
+    console.error('[puzzle] failed to load piece models:', loadError);
+    pageElements.loadingText.textContent = 'Could not load the 3D pieces. Check that assets/models/ was deployed.';
+    return;
+  }
 
   puzzleSession.boardView = new BoardView({ THREE, pieceLoader: puzzleSession.pieceLoader });
   puzzleSession.boardView.object3D.scale.setScalar(BOARD_SCALE.PUZZLE);
+  // Tip the whole board+pieces group back a few degrees so the 3D pieces
+  // read as shapes rather than flat tops when viewed close to overhead.
+  puzzleSession.boardView.object3D.rotation.x = -THREE.MathUtils.degToRad(BOARD_TILT_DEGREES);
   // Attach the board to the marker: from here on AR.js positions it for us.
   pageElements.marker.setObject3D('chessboard', puzzleSession.boardView.object3D);
 
@@ -468,35 +492,64 @@ function finishPuzzleAsFailed(reason) {
 /**
  * Turn a tap on the board into a square.
  *
- * Picking is delegated to A-Frame's own `cursor`/`raycaster` components
- * (`#tapCursor` in puzzle.html, parented under the camera entity) rather than
- * a hand-built raycaster: they are driven directly by the live camera object
- * AR.js updates every frame, and already handle the touch-vs-mouse event
- * differences correctly. Reaching for `sceneEl.camera` ourselves risked using
- * a stale or otherwise-mismatched camera reference, which would explain
- * taps that silently miss even when the board looks correctly tracked.
+ * This listens directly on the render canvas and picks with
+ * `boardView.pickSquareAtPointer()` — the same method Duel Mode's preview
+ * mode uses — rather than going through A-Frame's `cursor`/`raycaster`
+ * components. Those components only fire their `click` event when their own
+ * raycaster currently has an intersected *entity*, and an intersection only
+ * counts an object if it has `.el` bound to it. A-Frame stamps `.el` onto a
+ * `setObject3D` tree exactly once, at the moment `setObject3D` is called
+ * (see `initialisePuzzleMode` above) — every piece is added to the board
+ * afterwards, in `loadPuzzle`, so no piece mesh is ever considered
+ * "intersected" by A-Frame's own bookkeeping, and taps that land on one can
+ * silently fail to fire `click` at all. Picking straight from the pointer
+ * event sidesteps that gate entirely: it only needs the current camera and
+ * the canvas's bounding box, both cheap to read fresh on every tap.
  *
- * The cursor only listens on the canvas, so taps on the HTML overlay's
- * buttons never reach it — no manual "was this the interface" check needed.
+ * The canvas sits under the HTML overlay, so taps on the overlay's buttons
+ * never reach this listener — no manual "was this the interface" check
+ * needed.
  */
-function handleTapCursorClick() {
+function handleCanvasPointerDown(pointerEvent) {
   if (!puzzleSession.boardView || !puzzleSession.isMarkerVisible) {
     return;
   }
 
-  const raycasterComponent = pageElements.tapCursor.components.raycaster;
-  if (!raycasterComponent) {
+  const camera = pageElements.scene.camera;
+  if (!camera) {
     return;
   }
 
-  const square = puzzleSession.boardView.pickSquareWithRaycaster(raycasterComponent.raycaster);
+  // THE ONE THAT ACTUALLY BREAKS TAPPING IN THIS MODE.
+  //
+  // AR.js replaces the camera's projection matrix with ARToolkit's calibrated
+  // one — `camera.projectionMatrix.copy(arController.getProjectionMatrix())` —
+  // but never calls `updateProjectionMatrix()`, so `projectionMatrixInverse`
+  // is left holding A-Frame's DEFAULT lens (fov 80, window aspect). Three.js
+  // renders through the first matrix and unprojects a tap through the second,
+  // and the two only agree at the dead centre of the screen: the further from
+  // centre the tap, the further the ray strays, until it resolves to a
+  // neighbouring square or misses the board entirely. That is why a piece
+  // could be picked up near the middle but the move to a square nearer the
+  // edge silently deselected instead, and why a laptop — 4:3 webcam feed in a
+  // wide window, so a much bigger mismatch — felt like nothing was clickable.
+  //
+  // Restoring the invariant Three.js maintains itself, on the live matrix, is
+  // enough; it costs one 4x4 inversion per tap.
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+
+  const square = puzzleSession.boardView.pickSquareAtPointer(
+    pointerEvent,
+    camera,
+    pageElements.scene.canvas
+  );
   if (square) {
     handleSquareTapped(square);
   }
 }
 
 function wireUpControls() {
-  pageElements.tapCursor.addEventListener('click', handleTapCursorClick);
+  pageElements.scene.canvas.addEventListener('pointerdown', handleCanvasPointerDown);
 
   pageElements.startButton.addEventListener('click', () => {
     // This tap is the user gesture the browser requires before audio may play.

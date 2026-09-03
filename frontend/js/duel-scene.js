@@ -860,7 +860,10 @@ async function initialiseDuelMode() {
   renderContext.renderer = buildRenderer();
   buildScene();
 
-  duelSession.pieceLoader = new PieceLoader({ THREE, GLTFLoader });
+  // No top-icon discs here: this board is looked at from a standing 3/4
+  // angle, where the models' own silhouettes are already telling and a disc
+  // over each crown would only cover them up.
+  duelSession.pieceLoader = new PieceLoader({ THREE, GLTFLoader, showTopIcons: false });
   try {
     await duelSession.pieceLoader.loadAllPieces((loadedCount, totalCount) => {
       pageElements.progressFill.style.width = `${(loadedCount / totalCount) * 100}%`;

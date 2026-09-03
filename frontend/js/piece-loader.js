@@ -38,6 +38,13 @@ import { MODEL_BASE_PATH, PIECE_MODEL_FILES, PIECE_COLOURS } from './config.js';
  * its crown — from that angle a bishop and a pawn silhouette almost the same.
  * A flat icon facing the same way the player is looking solves exactly that,
  * without changing the 3D models.
+ *
+ * WHY IT IS OPTIONAL
+ * -------------------
+ * That reasoning is specific to looking straight down. Duel Mode is viewed
+ * from a standing 3/4 angle, where the models already read clearly and a disc
+ * floating over each crown only hides the very geometry it was meant to
+ * stand in for — so Duel Mode switches them off via `showTopIcons: false`.
  */
 const PIECE_TOP_ICON_GLYPHS = {
   p: '♙',
@@ -61,10 +68,14 @@ export class PieceLoader {
    * @param {string} [options.basePath]   Where the .glb files live, relative
    *   to the HTML page. Both pages sit at the frontend root, so the default is
    *   correct for each of them.
+   * @param {boolean} [options.showTopIcons] Whether to glue a flat glyph disc
+   *   on top of each piece. Defaults to true, which is what a near-top-down
+   *   marker board wants; see the note above `PIECE_TOP_ICON_GLYPHS`.
    */
-  constructor({ THREE, GLTFLoader, basePath = MODEL_BASE_PATH }) {
+  constructor({ THREE, GLTFLoader, basePath = MODEL_BASE_PATH, showTopIcons = true }) {
     this.THREE = THREE;
     this.basePath = basePath;
+    this.showTopIcons = showTopIcons;
     this.gltfLoader = new GLTFLoader();
 
     this.loadedModelsByType = new Map();
@@ -182,8 +193,10 @@ export class PieceLoader {
     for (const [pieceType, loadedScene] of this.loadedModelsByType) {
       // Measured once per piece type, before any per-colour clone or rotation,
       // so the icon sits at the same height on both a white and a black piece
-      // of the same type.
-      const pieceHeight = new this.THREE.Box3().setFromObject(loadedScene).max.y;
+      // of the same type. Skipped entirely when there is no icon to place.
+      const pieceHeight = this.showTopIcons
+        ? new this.THREE.Box3().setFromObject(loadedScene).max.y
+        : 0;
 
       for (const pieceColour of Object.keys(PIECE_COLOURS)) {
         const tintedTemplate = loadedScene.clone(true);
@@ -207,7 +220,9 @@ export class PieceLoader {
           tintedTemplate.rotation.y = Math.PI;
         }
 
-        tintedTemplate.add(this.createTopIconMesh(pieceType, pieceColour, pieceHeight));
+        if (this.showTopIcons) {
+          tintedTemplate.add(this.createTopIconMesh(pieceType, pieceColour, pieceHeight));
+        }
 
         this.tintedTemplates.set(PieceLoader.templateKey(pieceType, pieceColour), tintedTemplate);
       }

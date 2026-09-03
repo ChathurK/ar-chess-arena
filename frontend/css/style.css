@@ -65,6 +65,14 @@ body {
   overscroll-behavior: none;
 }
 
+/* AR.js injects its own <video> element for the camera feed and positions it
+   over the page. Left alone it can sit above the render canvas and swallow
+   taps meant for the board, so it is taken out of hit-testing entirely — the
+   feed is something to look at, never something to click. */
+video {
+  pointer-events: none;
+}
+
 /* The A-Frame / Three.js canvas fills the viewport; everything else floats. */
 .ar-overlay {
   position: fixed;
