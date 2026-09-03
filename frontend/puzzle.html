@@ -55,7 +55,17 @@
       smoothThreshold="4"
     ></a-marker>
 
-    <a-entity camera></a-entity>
+    <!--
+      The tap-to-select ray. `rayOrigin: mouse` (A-Frame's `cursor` component)
+      points the ray at wherever the pointer is — mouse or touch — rather
+      than the camera's forward gaze, and drives it from the SAME camera
+      object AR.js keeps updated every frame, which a hand-rolled raycaster
+      built from a separately-fetched camera reference is not guaranteed to.
+      `fuse: false` fires on tap immediately instead of after a gaze delay.
+    -->
+    <a-entity camera>
+      <a-entity id="tapCursor" cursor="fuse: false; rayOrigin: mouse" raycaster="far: 50; interval: 0"></a-entity>
+    </a-entity>
   </a-scene>
 
   <!-- =================================================================
@@ -97,7 +107,7 @@
       Open the marker on another screen, then scan it with your camera.
     </p>
     <div class="progress"><div class="progress__fill" id="progressFill"></div></div>
-    <p class="curtain__text" id="loadingText">Loading 3D pieces…</p>
+    <p class="curtain__text" id="loadingText">Preparing pieces…</p>
     <div class="curtain__actions">
       <button class="button button--primary" id="startButton" type="button" disabled>Start</button>
       <a class="button" href="./index.html">Back to menu</a>

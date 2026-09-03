@@ -30,7 +30,7 @@
  */
 
 import { ChessEngine } from './chess-engine.js';
-import { PieceLoader } from './piece-loader.js';
+import { FlatPieceLoader } from './flat-piece-loader.js';
 import { BoardView } from './board-view.js';
 import { createSceneLighting } from './board-builder.js';
 import { PUZZLES } from './puzzles.js';
@@ -44,6 +44,7 @@ import { gameAudio } from './audio.js';
 const pageElements = {
   scene: document.querySelector('a-scene'),
   marker: document.getElementById('chessMarker'),
+  tapCursor: document.getElementById('tapCursor'),
   overlay: document.getElementById('arOverlay'),
   title: document.getElementById('puzzleTitle'),
   movesBadge: document.getElementById('movesBadge'),
@@ -171,19 +172,12 @@ async function initialisePuzzleMode() {
   // compatible with the A-Frame scene graph.
   const THREE = AFRAME.THREE;
 
-  puzzleSession.pieceLoader = new PieceLoader({ THREE, GLTFLoader: THREE.GLTFLoader });
+  puzzleSession.pieceLoader = new FlatPieceLoader({ THREE });
 
-  try {
-    await puzzleSession.pieceLoader.loadAllPieces((loadedCount, totalCount) => {
-      pageElements.progressFill.style.width = `${(loadedCount / totalCount) * 100}%`;
-      pageElements.loadingText.textContent = `Loading 3D pieces… ${loadedCount} of ${totalCount}`;
-    });
-  } catch (loadError) {
-    console.error('[puzzle] failed to load piece models:', loadError);
-    pageElements.loadingText.textContent =
-      'Could not load the 3D pieces. Check that assets/models/ was deployed alongside the page.';
-    return;
-  }
+  await puzzleSession.pieceLoader.loadAllPieces((loadedCount, totalCount) => {
+    pageElements.progressFill.style.width = `${(loadedCount / totalCount) * 100}%`;
+    pageElements.loadingText.textContent = `Preparing pieces… ${loadedCount} of ${totalCount}`;
+  });
 
   puzzleSession.boardView = new BoardView({ THREE, pieceLoader: puzzleSession.pieceLoader });
   puzzleSession.boardView.object3D.scale.setScalar(BOARD_SCALE.PUZZLE);
@@ -207,8 +201,22 @@ async function initialisePuzzleMode() {
  * Marker tracking
  * ------------------------------------------------------------------------ */
 
+/**
+ * How long a `markerLost` event has to keep holding true before the board is
+ * actually treated as gone.
+ *
+ * AR.js's own detector can drop and re-find the marker within a single frame
+ * under normal handshake — a slightly shaky hand, a moment of motion blur —
+ * which is what the visible "blink" is. Without this delay, every one of
+ * those blinks also disabled tapping for that instant, which is a very
+ * plausible reason a tap can appear to do nothing at all.
+ */
+const MARKER_LOST_GRACE_MS = 250;
+let markerLostTimeoutId = null;
+
 function wireUpMarkerEvents() {
   pageElements.marker.addEventListener('markerFound', () => {
+    window.clearTimeout(markerLostTimeoutId);
     puzzleSession.isMarkerVisible = true;
     if (puzzleSession.phase === 'awaiting-marker') {
       puzzleSession.phase = 'player-turn';
@@ -218,11 +226,14 @@ function wireUpMarkerEvents() {
   });
 
   pageElements.marker.addEventListener('markerLost', () => {
-    puzzleSession.isMarkerVisible = false;
-    // The position is not lost — only the view of it — so the phase is kept
-    // and simply reported differently. Walking around the marker mid-puzzle
-    // should never reset progress.
-    setStatusMessage('Marker lost. Point the camera back at it to carry on.');
+    window.clearTimeout(markerLostTimeoutId);
+    markerLostTimeoutId = window.setTimeout(() => {
+      puzzleSession.isMarkerVisible = false;
+      // The position is not lost — only the view of it — so the phase is kept
+      // and simply reported differently. Walking around the marker mid-puzzle
+      // should never reset progress.
+      setStatusMessage('Marker lost. Point the camera back at it to carry on.');
+    }, MARKER_LOST_GRACE_MS);
   });
 }
 
@@ -455,35 +466,37 @@ function finishPuzzleAsFailed(reason) {
  * ------------------------------------------------------------------------ */
 
 /**
- * Turn a tap anywhere on the page into a board square.
+ * Turn a tap on the board into a square.
  *
- * The listener is on the document rather than the canvas because AR.js layers
- * a video element, a canvas and the interface on top of each other; listening
- * once at the top and ignoring taps that landed on the interface is far more
- * predictable than trying to pick the right element to listen on.
+ * Picking is delegated to A-Frame's own `cursor`/`raycaster` components
+ * (`#tapCursor` in puzzle.html, parented under the camera entity) rather than
+ * a hand-built raycaster: they are driven directly by the live camera object
+ * AR.js updates every frame, and already handle the touch-vs-mouse event
+ * differences correctly. Reaching for `sceneEl.camera` ourselves risked using
+ * a stale or otherwise-mismatched camera reference, which would explain
+ * taps that silently miss even when the board looks correctly tracked.
+ *
+ * The cursor only listens on the canvas, so taps on the HTML overlay's
+ * buttons never reach it — no manual "was this the interface" check needed.
  */
-function handlePointerDown(pointerEvent) {
-  if (pointerEvent.target.closest('.ar-overlay, .curtain')) {
-    return; // the tap was meant for a button
-  }
+function handleTapCursorClick() {
   if (!puzzleSession.boardView || !puzzleSession.isMarkerVisible) {
     return;
   }
 
-  const camera = pageElements.scene.camera;
-  const canvas = pageElements.scene.renderer && pageElements.scene.renderer.domElement;
-  if (!camera || !canvas) {
+  const raycasterComponent = pageElements.tapCursor.components.raycaster;
+  if (!raycasterComponent) {
     return;
   }
 
-  const square = puzzleSession.boardView.pickSquareAtPointer(pointerEvent, camera, canvas);
+  const square = puzzleSession.boardView.pickSquareWithRaycaster(raycasterComponent.raycaster);
   if (square) {
     handleSquareTapped(square);
   }
 }
 
 function wireUpControls() {
-  document.addEventListener('pointerdown', handlePointerDown);
+  pageElements.tapCursor.addEventListener('click', handleTapCursorClick);
 
   pageElements.startButton.addEventListener('click', () => {
     // This tap is the user gesture the browser requires before audio may play.

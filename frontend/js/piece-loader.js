@@ -40,6 +40,32 @@
 
 import { MODEL_BASE_PATH, PIECE_MODEL_FILES, PIECE_COLOURS } from './config.js';
 
+/**
+ * One glyph per piece type, drawn onto a small disc that sits flat on top of
+ * each piece and faces straight up.
+ *
+ * WHY THIS EXISTS
+ * ----------------
+ * Marker-based AR is usually viewed from close to directly above the board
+ * (the marker lies flat on a table), which foreshortens every piece down to
+ * its crown — from that angle a bishop and a pawn silhouette almost the same.
+ * A flat icon facing the same way the player is looking solves exactly that,
+ * without changing the 3D models.
+ */
+const PIECE_TOP_ICON_GLYPHS = {
+  p: '♙',
+  r: '♖',
+  n: '♘',
+  b: '♗',
+  q: '♕',
+  k: '♔',
+};
+
+/** Diameter of the top icon disc, in board units (a square is 1 unit). */
+const TOP_ICON_DIAMETER = 0.62;
+/** Gap left between the piece's true top and the icon disc, so it doesn't z-fight. */
+const TOP_ICON_CLEARANCE = 0.03;
+
 export class PieceLoader {
   /**
    * @param {object} options
@@ -80,6 +106,65 @@ export class PieceLoader {
     const meshName = (mesh.name || '').toLowerCase();
     const materialName = ((mesh.material && mesh.material.name) || '').toLowerCase();
     return meshName.includes('accent') || materialName.includes('accent');
+  }
+
+  /**
+   * Draw one top-icon disc as a 2D canvas, ready to become a texture.
+   *
+   * Black pieces get the drawing rotated 180° before the glyph is stamped on.
+   * `buildTintedTemplates` rotates the whole black template around Y so its
+   * knight faces the right way (see the comment there); without this
+   * counter-rotation the icon would come along for that spin and read
+   * upside-down when the board is viewed from above.
+   */
+  static createTopIconCanvas(pieceType, pieceColour) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+
+    const chipColour = pieceColour === 'w' ? '#f2ead8' : '#2f3336';
+    const inkColour = pieceColour === 'w' ? '#1b1814' : '#e8dcc0';
+
+    context.beginPath();
+    context.arc(64, 64, 58, 0, Math.PI * 2);
+    context.fillStyle = chipColour;
+    context.fill();
+    context.lineWidth = 5;
+    context.strokeStyle = inkColour;
+    context.stroke();
+
+    if (pieceColour === 'b') {
+      context.translate(64, 64);
+      context.rotate(Math.PI);
+      context.translate(-64, -64);
+    }
+
+    context.fillStyle = inkColour;
+    context.font = '80px "Segoe UI Symbol", "DejaVu Sans", sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(PIECE_TOP_ICON_GLYPHS[pieceType], 64, 68);
+
+    return canvas;
+  }
+
+  /** Build the flat, upward-facing disc that sits on top of one piece. */
+  createTopIconMesh(pieceType, pieceColour, pieceHeight) {
+    const THREE = this.THREE;
+    const canvas = PieceLoader.createTopIconCanvas(pieceType, pieceColour);
+    const texture = new THREE.CanvasTexture(canvas);
+
+    const iconMesh = new THREE.Mesh(
+      new THREE.CircleGeometry(TOP_ICON_DIAMETER / 2, 24),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: true })
+    );
+    iconMesh.name = 'topIcon';
+    // A circle's default normal is +Z; tip it flat so it faces +Y (straight
+    // up), which is the way the player is looking in marker-based AR.
+    iconMesh.rotation.x = -Math.PI / 2;
+    iconMesh.position.y = pieceHeight + TOP_ICON_CLEARANCE;
+    return iconMesh;
   }
 
   /**
@@ -130,6 +215,11 @@ export class PieceLoader {
    */
   buildTintedTemplates() {
     for (const [pieceType, loadedScene] of this.loadedModelsByType) {
+      // Measured once per piece type, before any per-colour clone or rotation,
+      // so the icon sits at the same height on both a white and a black piece
+      // of the same type.
+      const pieceHeight = new this.THREE.Box3().setFromObject(loadedScene).max.y;
+
       for (const pieceColour of Object.keys(PIECE_COLOURS)) {
         const palette = PIECE_COLOURS[pieceColour];
         // Without this, an older single-hex PIECE_COLOURS would make every
@@ -170,6 +260,8 @@ export class PieceLoader {
         if (pieceColour === 'b') {
           tintedTemplate.rotation.y = Math.PI;
         }
+
+        tintedTemplate.add(this.createTopIconMesh(pieceType, pieceColour, pieceHeight));
 
         this.tintedTemplates.set(PieceLoader.templateKey(pieceType, pieceColour), tintedTemplate);
       }

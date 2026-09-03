@@ -31,6 +31,7 @@ import {
   squareToLocalPosition,
   squareToIndices,
   indicesToSquare,
+  localPositionToSquare,
 } from './board-builder.js';
 import { HIGHLIGHT_COLOURS, ANIMATION } from './config.js';
 
@@ -77,6 +78,13 @@ export class BoardView {
     // when a phone can least afford a collection pause.
     this.reusableRaycaster = new THREE.Raycaster();
     this.reusablePointer = new THREE.Vector2();
+
+    // Scratch objects for the plane-fallback pick (see `pickSquareWithRaycaster`).
+    this.scratchPlane = new THREE.Plane();
+    this.scratchPlaneNormal = new THREE.Vector3();
+    this.scratchPlanePoint = new THREE.Vector3();
+    this.scratchQuaternion = new THREE.Quaternion();
+    this.scratchHitPoint = new THREE.Vector3();
   }
 
   /** The object to add to your scene (or to an A-Frame entity). */
@@ -474,7 +482,34 @@ export class BoardView {
         return square;
       }
     }
-    return null;
+    // Nothing solid was hit — a very plausible outcome on a small marker
+    // board, where a piece's actual mesh covers only a fraction of the
+    // square it stands on. Rather than the tap silently doing nothing, fall
+    // back to where the ray crosses the board's own plane and resolve
+    // whichever square that point falls in.
+    return this.pickSquareOnBoardPlane(raycaster);
+  }
+
+  /**
+   * Resolve a square from where a ray crosses the board's surface plane,
+   * regardless of whether it actually hit a mesh there.
+   * @returns {string|null}
+   */
+  pickSquareOnBoardPlane(raycaster) {
+    this.orientationGroup.getWorldQuaternion(this.scratchQuaternion);
+    this.orientationGroup.getWorldPosition(this.scratchPlanePoint);
+    this.scratchPlaneNormal.set(0, 1, 0).applyQuaternion(this.scratchQuaternion);
+    this.scratchPlane.setFromNormalAndCoplanarPoint(
+      this.scratchPlaneNormal,
+      this.scratchPlanePoint
+    );
+
+    if (!raycaster.ray.intersectPlane(this.scratchPlane, this.scratchHitPoint)) {
+      return null; // the ray runs parallel to the board — no meaningful tap
+    }
+
+    const localHitPoint = this.orientationGroup.worldToLocal(this.scratchHitPoint.clone());
+    return localPositionToSquare(localHitPoint.x, localHitPoint.z);
   }
 
   /**

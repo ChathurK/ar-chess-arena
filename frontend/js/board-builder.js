@@ -80,6 +80,23 @@ export function squareToLocalPosition(square) {
   };
 }
 
+/**
+ * The inverse of `squareToLocalPosition`: which square (if any) sits under a
+ * given board-local (x, z) point.
+ *
+ * Used as a raycast fallback — a tap that misses every mesh (a thin piece
+ * model, or the gap around one) but still lands within the board's footprint
+ * should still register, rather than silently doing nothing.
+ * @returns {string|null}
+ */
+export function localPositionToSquare(x, z) {
+  const { SQUARE_SIZE, SQUARES_PER_SIDE } = BOARD_GEOMETRY;
+  const centreOffset = (SQUARES_PER_SIDE - 1) / 2;
+  const fileIndex = Math.round(x / SQUARE_SIZE + centreOffset);
+  const rankIndex = Math.round(centreOffset - z / SQUARE_SIZE);
+  return indicesToSquare(fileIndex, rankIndex);
+}
+
 /** A light square is one where the file and rank indices differ in parity. */
 export function isLightSquare(square) {
   const indices = squareToIndices(square);
