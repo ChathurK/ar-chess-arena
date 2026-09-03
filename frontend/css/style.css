@@ -370,7 +370,7 @@ body.page--landing {
 
 .landing__header {
   text-align: center;
-  max-width: 46ch;
+  max-width: 50ch;
 }
 
 .landing__title {
@@ -394,7 +394,7 @@ body.page--landing {
 .mode-grid {
   display: grid;
   gap: 16px;
-  width: min(760px, 100%);
+  width: min(1024px, 100%);
   grid-template-columns: 1fr;
 }
 
@@ -447,6 +447,18 @@ body.page--landing {
   font-size: 14px;
   line-height: 1.55;
   color: var(--colour-parchment-dim);
+}
+
+.mode-card__list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--colour-parchment-dim);
+}
+
+.mode-card__list li + li {
+  margin-top: 4px;
 }
 
 .mode-card__requirement {

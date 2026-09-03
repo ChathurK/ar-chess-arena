@@ -37,29 +37,22 @@
 </head>
 <body>
   <h1>Hiro marker</h1>
-  <p>
-    Print this page, or open it on a second screen (a laptop or tablet works
-    well), then point Puzzle Mode's camera at the marker. The board appears
-    standing on it.
-  </p>
-  <p>
-    Keep the white border around the marker clear, hold the phone 20–50&nbsp;cm
-    away, and avoid strong glare — reflections on a glossy screen are the most
-    common reason tracking fails.
-  </p>
-
-  <div class="marker-frame">
-    <!--
-      The Hiro pattern is the marker AR.js recognises out of the box via
-      `preset="hiro"`, so no pattern file has to be trained or shipped. The
-      image itself is served from the AR.js repository; if it ever fails to
-      load, the message below points at alternatives.
-    -->
-    <img
-      src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-      alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
-      onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';"
-    />
+    <div class="marker-layout">
+      <div class="instruction">
+        Open the app or go to the link, then point your camera at this marker to scan it.
+      </div>
+    
+      <div class="marker-frame">
+        <!--
+            The Hiro pattern is the marker AR.js recognises out of the box via
+            `preset="hiro"`, so no pattern file has to be trained or shipped. The
+            image itself is served from the AR.js repository; if it ever fails to
+            load, the message below points at alternatives.
+          -->
+        <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+          alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
+          onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';" />
+      </div>
   </div>
 
   <p class="fallback">

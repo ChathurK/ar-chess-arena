@@ -1,8 +1,6 @@
 # AR Chess Arena
 
-Browser-based augmented reality chess, built for **INTE 42312 — Virtual and
-Augmented Reality** (University of Kelaniya). Two modes, chosen so that each
-demonstrates one of the two tracking types the assignment requires.
+A browser-based AR chess project built for Virtual and Augmented Reality. It has two modes, each showcasing a different tracking type.
 
 | Mode | Tracking | What it is |
 |---|---|---|
