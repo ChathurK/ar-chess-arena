@@ -6,22 +6,9 @@
  *
  * WHY SIX FILES BECOME TWELVE PIECES
  * ----------------------------------
- * Each piece is exported in a neutral ivory. Colour is a material property,
- * not geometry, so tinting at runtime halves the number of files the phone has
- * to download over what is often a mobile connection.
- *
- * TWO TONES PER PIECE
- * -------------------
- * A model may be built from more than one material: the imported set produced
- * by scripts/extract_chess_pieces.py splits every piece into a "body" mesh and
- * an "accent" mesh, so the metal rings and finials can be tinted separately
- * from the turned wood. The generated set in assets/models/ is a single
- * unnamed mesh per piece with no accent at all.
- *
- * Both work here, and that is deliberate: anything not identifiable as an
- * accent is treated as body, so a model with no accent simply comes out one
- * colour. Switching between the two sets stays a MODEL_BASE_PATH change in
- * config.js and nothing more.
+ * The generator exports each piece in a neutral ivory. Colour is a material
+ * property, not geometry, so tinting at runtime halves the number of files the
+ * phone has to download over what is often a mobile connection.
  *
  * THE THREE-LEVEL CACHE (this is the part worth understanding)
  * -------------------------------------------------------------
@@ -88,24 +75,6 @@ export class PieceLoader {
   /** Cache key for a tinted template, e.g. "wq" for a white queen. */
   static templateKey(pieceType, pieceColour) {
     return `${pieceColour}${pieceType}`;
-  }
-
-  /**
-   * Is this mesh a piece's metallic accent rather than its body?
-   *
-   * Both the mesh name and the material name are checked, because they come
-   * from different places in the glTF and either one can be the survivor. The
-   * extraction script writes a node called "accent" AND a material called
-   * "ChessPieceAccent"; a model exported by other tooling, or run through a
-   * glTF optimiser that renames or drops nodes, may keep only one of them.
-   *
-   * Anything unrecognised is body. That is what lets the single-mesh generated
-   * set work through this same code path without a special case.
-   */
-  static isAccentMesh(mesh) {
-    const meshName = (mesh.name || '').toLowerCase();
-    const materialName = ((mesh.material && mesh.material.name) || '').toLowerCase();
-    return meshName.includes('accent') || materialName.includes('accent');
   }
 
   /**
@@ -203,15 +172,11 @@ export class PieceLoader {
   }
 
   /**
-   * Turn each loaded model into one light-side and one dark-side template.
+   * Turn each loaded model into one ivory and one charcoal template.
    *
-   * The models carry a neutral base colour, so tinting overwrites the material
-   * colour outright rather than multiplying into it — that keeps the dark side
-   * genuinely dark instead of a muddy beige.
-   *
-   * Only the colour is touched. Metalness and roughness are left exactly as the
-   * model authored them, which is what makes a tinted accent still read as
-   * metal rather than as painted wood.
+   * The exported models carry an ivory base colour, so tinting overwrites the
+   * material colour outright rather than multiplying into it — that keeps the
+   * charcoal side genuinely dark instead of a muddy beige.
    */
   buildTintedTemplates() {
     for (const [pieceType, loadedScene] of this.loadedModelsByType) {
@@ -221,36 +186,17 @@ export class PieceLoader {
       const pieceHeight = new this.THREE.Box3().setFromObject(loadedScene).max.y;
 
       for (const pieceColour of Object.keys(PIECE_COLOURS)) {
-        const palette = PIECE_COLOURS[pieceColour];
-        // Without this, an older single-hex PIECE_COLOURS would make every
-        // lookup undefined and setHex would quietly paint the whole set black,
-        // which is a genuinely confusing thing to debug from a phone.
-        if (
-          typeof palette !== 'object' ||
-          typeof palette.body !== 'number' ||
-          typeof palette.accent !== 'number'
-        ) {
-          throw new Error(
-            `[piece-loader] PIECE_COLOURS.${pieceColour} must be an object with ` +
-              'numeric body and accent colours — see config.js'
-          );
-        }
-
         const tintedTemplate = loadedScene.clone(true);
 
         tintedTemplate.traverse((sceneChild) => {
           if (!sceneChild.isMesh) {
             return;
           }
-          // Decided before the material is replaced, because the material's
-          // own name is one of the two signals it reads.
-          const tint = PieceLoader.isAccentMesh(sceneChild) ? palette.accent : palette.body;
-
           // `clone()` shares materials with the original, so a fresh material
           // is essential here — without it, tinting one colour would silently
           // repaint the other one too.
           sceneChild.material = sceneChild.material.clone();
-          sceneChild.material.color.setHex(tint);
+          sceneChild.material.color.setHex(PIECE_COLOURS[pieceColour]);
           sceneChild.castShadow = true;
           sceneChild.receiveShadow = false;
         });

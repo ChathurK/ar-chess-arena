@@ -51,30 +51,12 @@ export const CHESS_JS_MODULE_URL = 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/
  * 3D models
  * ------------------------------------------------------------------------ */
 
-/**
- * Which of the two interchangeable piece sets to serve.
- *
- *   ./assets/models/           the self-authored set, built by
- *                              scripts/generate_chess_pieces.py. No third-party
- *                              content, so no attribution obligation.
- *   ./assets/models-imported/  a set extracted from a CC-BY model by
- *                              scripts/extract_chess_pieces.py. Better looking,
- *                              two-tone, and REQUIRES the author to be credited
- *                              wherever it is used — see that folder's
- *                              ATTRIBUTION.md before switching to it.
- *
- * Both obey the same conventions (one unit per square, origin at the centre of
- * the base, +Z facing), so this is the only line that has to change. The
- * imported set adds a separate "accent" mesh per piece, which piece-loader.js
- * tints from PIECE_COLOURS[side].accent; the generated set has no accent and
- * takes the body colour throughout.
- */
-export const MODEL_BASE_PATH = './assets/models-imported/';
+export const MODEL_BASE_PATH = './assets/models/';
 
 /**
- * Maps a chess.js piece letter to its model file. Only six files exist because
- * colour is applied at runtime as a material tint rather than being baked into
- * twelve separate models. Both sets use these same six names.
+ * Maps a chess.js piece letter to its generated model file. Only six files
+ * exist because colour is applied at runtime as a material tint rather than
+ * being baked into twelve separate models.
  */
 export const PIECE_MODEL_FILES = {
   p: 'pawn.glb',
@@ -123,20 +105,10 @@ export const BOARD_COLOURS = {
   FRAME: 0x4a3627,
 };
 
-/**
- * Piece colours, two tones per side.
- *
- * `body` is the turned wood of the piece; `accent` is the metal rings and
- * finials that a model may or may not have. The generated set in
- * assets/models/ is a single mesh per piece with no accent, so it takes `body`
- * and never reads `accent` — which is exactly what keeps the two model sets
- * interchangeable behind one MODEL_BASE_PATH.
- *
- * chess.js uses 'w' and 'b' for the two sides, so the keys match it.
- */
 export const PIECE_COLOURS = {
-  w: { body: 0xf2ead8, accent: 0xb87333 },
-  b: { body: 0x2f3336, accent: 0xc9a227 },
+  /** chess.js uses 'w' and 'b' for the two sides, so the keys match it. */
+  w: 0xf2ead8,
+  b: 0x2f3336,
 };
 
 /**

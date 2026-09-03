@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hiro marker — AR Chess Arena</title>
   <style>
+    /* A deliberately plain page: its whole job is to put a crisp, high-contrast
+       marker on screen or on paper. Anything decorative near the marker risks
+       confusing the detector, so the area around it is kept empty and white. */
     body {
       margin: 0;
       padding: 28px 20px 40px;
@@ -13,73 +16,50 @@
       background: #fff;
       text-align: center;
     }
-    h1 { font-size: 20px; margin: 0 0 10px; }
-    .marker-layout {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-      width: min(560px, 100%);
-      margin: 0 auto;
-    }
-    .instruction {
-      display: block;
-      width: 100%;
-      max-width: 520px;
-      padding: 14px 18px;
-      border: 1px solid #d9d1c5;
-      border-radius: 12px;
-      background: #f8f4ee;
-      font-size: 15px;
-      line-height: 1.5;
-      color: #2d2a26;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-    }
-    .instruction strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 13px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #5d564d;
-    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p  { max-width: 46ch; margin: 0 auto 8px; font-size: 14px; line-height: 1.55; color: #555; }
     .marker-frame {
       display: inline-block;
-      padding: 26px;
+      margin: 24px auto;
+      padding: 26px;           /* the white quiet zone the detector needs */
       background: #fff;
       border: 1px solid #ddd;
     }
     .marker-frame img { display: block; width: 260px; height: 260px; image-rendering: pixelated; }
-    .fallback { display: none; font-size: 13px; color: #b00; max-width: 46ch; margin: 14px auto 0; }
+    .fallback { display: none; font-size: 13px; color: #b00; max-width: 46ch; margin: 0 auto; }
     .fallback a { color: #b00; }
     @media print {
-      h1, .instruction, .fallback { display: none; }
+      /* Printing should produce the marker and nothing else. */
+      p, h1, .fallback { display: none; }
       .marker-frame { border: none; margin: 0; }
     }
   </style>
 </head>
 <body>
   <h1>Hiro marker</h1>
+  <p>
+    Print this page, or open it on a second screen (a laptop or tablet works
+    well), then point Puzzle Mode's camera at the marker. The board appears
+    standing on it.
+  </p>
+  <p>
+    Keep the white border around the marker clear, hold the phone 20–50&nbsp;cm
+    away, and avoid strong glare — reflections on a glossy screen are the most
+    common reason tracking fails.
+  </p>
 
-  <div class="marker-layout">
-    <div class="instruction">
-      Open the app or go to the link, then point your camera at this marker to scan it.
-    </div>
-
-    <div class="marker-frame">
-      <!--
-        The Hiro pattern is the marker AR.js recognises out of the box via
-        `preset="hiro"`, so no pattern file has to be trained or shipped. The
-        image itself is served from the AR.js repository; if it ever fails to
-        load, the message below points at alternatives.
-      -->
-      <img
-        src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-        alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
-        onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';"
-      />
-    </div>
+  <div class="marker-frame">
+    <!--
+      The Hiro pattern is the marker AR.js recognises out of the box via
+      `preset="hiro"`, so no pattern file has to be trained or shipped. The
+      image itself is served from the AR.js repository; if it ever fails to
+      load, the message below points at alternatives.
+    -->
+    <img
+      src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+      alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
+      onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';"
+    />
   </div>
 
   <p class="fallback">

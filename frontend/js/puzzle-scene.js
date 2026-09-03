@@ -1,7 +1,7 @@
 /**
  * puzzle-scene.js
  * ===============
- * Puzzle Mode: the MARKER-BASED version.
+ * Puzzle Mode: the MARKER-BASED half of the assignment's tracking requirement.
  *
  * HOW MARKER TRACKING WORKS HERE
  * ------------------------------
