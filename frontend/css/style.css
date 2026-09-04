@@ -65,6 +65,24 @@ body {
   overscroll-behavior: none;
 }
 
+/* AR.js injects its own <video> element for the camera feed and positions it
+   over the page. Left alone it can sit above the render canvas and swallow
+   taps meant for the board, so it is taken out of hit-testing entirely — the
+   feed is something to look at, never something to click. */
+video {
+  pointer-events: none;
+}
+
+/* AR.js appends that <video> to <body> at `z-index: -2`. A negatively-stacked
+   positioned element paints BEFORE the backgrounds of in-flow block-level
+   boxes, so `body`'s own opaque background lands on top of it and hides the
+   camera feed completely. Clearing the background on AR pages lets the feed
+   through; `html` keeps the ink colour, so it still reads as a dark page
+   before the camera starts (or if permission is refused). */
+body.page--ar {
+  background: transparent;
+}
+
 /* The A-Frame / Three.js canvas fills the viewport; everything else floats. */
 .ar-overlay {
   position: fixed;
@@ -282,7 +300,7 @@ body {
 
 .curtain__text {
   margin: 0;
-  max-width: 34ch;
+  max-width: 50ch;
   font-size: 14.5px;
   line-height: 1.55;
   color: var(--colour-parchment-dim);
@@ -294,6 +312,92 @@ body {
   gap: 10px;
   width: min(320px, 100%);
   margin-top: 6px;
+}
+
+/* A curtain that deliberately lets the camera feed show through behind it,
+   so the user can see the camera is alive and framed before starting. The
+   backdrop blur keeps the feed as texture rather than detail, which stops it
+   competing with the text in front of it. Only the puzzle loading screen uses
+   this; blocking messages ("no WebXR") stay fully opaque. */
+.curtain--preview {
+  background: radial-gradient(
+    circle at 50% 35%,
+    rgba(42, 36, 28, 0.62) 0%,
+    rgba(18, 16, 13, 0.82) 70%
+  );
+  backdrop-filter: blur(14px) saturate(0.9);
+  -webkit-backdrop-filter: blur(14px) saturate(0.9);
+}
+
+/* ------------------------------------------------------- icon buttons */
+
+/* A round, single-icon control. Sized past the 44 px minimum tap target so
+   it stays comfortable at the very edge of the screen, where thumbs are
+   least accurate. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  color: var(--colour-parchment);
+  background: var(--colour-panel);
+  border: 1px solid rgba(232, 220, 192, 0.22);
+  border-radius: 50%;
+  box-shadow: var(--shadow-panel);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 80ms ease;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible {
+  background: rgba(232, 220, 192, 0.18);
+  border-color: rgba(240, 196, 25, 0.55);
+}
+
+.icon-button:active {
+  transform: scale(0.94);
+}
+
+.icon-button svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+/* Corner controls on the loading curtain. The curtain is `position: fixed`,
+   so these position against it; the env() offsets keep them clear of a
+   notch or a rounded screen corner. */
+.curtain__corner {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top, 14px));
+}
+
+.curtain__corner--left {
+  left: max(14px, env(safe-area-inset-left, 14px));
+}
+
+.curtain__corner--right {
+  right: max(14px, env(safe-area-inset-right, 14px));
+}
+
+/* The in-game back control. `panel--top` is capped at 560 px and centred, so
+   below this width there is no free gutter for the button to sit in without
+   overlapping the status panel — hence it is shown on wide screens only,
+   where the phone-sized layout is not what is on screen anyway. */
+.overlay-back {
+  display: none;
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  left: max(14px, env(safe-area-inset-left, 14px));
+}
+
+@media (min-width: 760px) {
+  .overlay-back {
+    display: inline-flex;
+  }
 }
 
 /* A slim progress bar for model loading. */
@@ -319,21 +423,54 @@ body {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 132px;
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 30;
-  max-width: min(420px, calc(100% - 32px));
-  padding: 10px 16px;
+  width: min(420px, calc(100% - 16px));
+  padding: 12px 18px;
   font-size: 13.5px;
   font-weight: 600;
+  /* Hints run to a couple of sentences, so this has to read as a paragraph
+     and not just a one-line pill: a real line-height stops the lines from
+     touching, and `balance` evens out the wrap so the last line is not left
+     stranded as a single word. */
+  line-height: 1.5;
   text-align: center;
+  text-wrap: balance;
   color: var(--colour-ink);
   background: var(--colour-amber);
-  border-radius: 999px;
+  /* Not a 999px pill. At that radius a wrapped message bulges into a blob
+     and the text crowds into the curved sides; a panel radius keeps long and
+     short messages looking like the same component. */
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-panel);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease;
+}
+
+/* Where the toast is placed inside the overlay's bottom group (Puzzle Mode),
+   it is anchored directly above the control panel instead of at a fixed
+   distance from the bottom of the screen. The panel changes height — the
+   buttons wrap on a narrow phone, and the safe-area inset varies by device —
+   so a hard-coded offset either crowds the buttons or floats away from them. */
+.overlay-bottom {
+  position: relative;
+  /* This wrapper spans the full width of the overlay, but only the panel
+     inside it is meant to be tappable. Without this, `.ar-overlay > *` would
+     hand the whole strip pointer events and it would swallow taps aimed at
+     the board on either side of the panel. */
+  pointer-events: none;
+}
+
+.overlay-bottom .panel {
+  pointer-events: auto;
+}
+
+.overlay-bottom .toast {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 10px;
 }
 
 .toast--visible {
@@ -355,7 +492,13 @@ body {
 /* index.html is an ordinary scrolling page rather than an AR view. */
 body.page--landing {
   overflow: auto;
-  background: radial-gradient(circle at 50% 0%, #2e2720 0%, #12100d 65%);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(46, 39, 32, 0.9) 0%, rgba(18, 16, 13, 0.94) 65%),
+    repeating-conic-gradient(
+      rgba(232, 220, 192, 0.05) 0% 25%,
+      rgba(0, 0, 0, 0.05) 0% 50%
+    );
+  background-size: auto, 64px 64px;
 }
 
 .landing {
@@ -374,6 +517,8 @@ body.page--landing {
 }
 
 .landing__title {
+  position: relative;
+  display: inline-block;
   margin: 0 0 6px;
   font-size: clamp(28px, 7vw, 40px);
   font-weight: 750;
@@ -382,6 +527,15 @@ body.page--landing {
 
 .landing__title span {
   color: var(--colour-amber);
+}
+
+.landing__crown {
+  position: absolute;
+  top: -0.45em;
+  right: -1.1em;
+  width: clamp(24px, 5vw, 40px);
+  height: auto;
+  transform: rotate(40deg);
 }
 
 .landing__subtitle {
@@ -394,20 +548,14 @@ body.page--landing {
 .mode-grid {
   display: grid;
   gap: 16px;
-  width: min(1024px, 100%);
+  width: min(760px, 100%);
   grid-template-columns: 1fr;
-}
-
-@media (min-width: 700px) {
-  .mode-grid {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 .mode-card {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 20px;
   padding: 20px;
   text-decoration: none;
   color: inherit;
@@ -422,6 +570,38 @@ body.page--landing {
   background: rgba(232, 220, 192, 0.1);
   border-color: rgba(240, 196, 25, 0.55);
   transform: translateY(-2px);
+}
+
+.mode-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mode-card__image {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(232, 220, 192, 0.16);
+}
+
+@media (max-width: 560px) {
+  .mode-card {
+    flex-direction: column;
+  }
+
+  .mode-card--duel {
+    flex-direction: column-reverse;
+  }
+
+  .mode-card__image {
+    width: 100%;
+    height: 200px;
+  }
 }
 
 .mode-card__tag {
@@ -467,36 +647,21 @@ body.page--landing {
   color: rgba(232, 220, 192, 0.5);
 }
 
-.landing__note {
-  width: min(760px, 100%);
-  padding: 16px 18px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--colour-parchment-dim);
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(232, 220, 192, 0.12);
-  border-radius: 14px;
-}
-
-.landing__note h2 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--colour-parchment);
-}
-
-.landing__note ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.landing__note li + li {
-  margin-top: 4px;
-}
-
-.landing__note a {
+.landing__marker-link {
+  font-size: 14px;
+  font-weight: 650;
   color: var(--colour-amber);
+  text-decoration: none;
+  padding: 10px 16px;
+  border: 1px solid rgba(240, 196, 25, 0.4);
+  border-radius: 999px;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.landing__marker-link:hover,
+.landing__marker-link:focus-visible {
+  background: rgba(240, 196, 25, 0.12);
+  border-color: rgba(240, 196, 25, 0.7);
 }
 
 /* Hide A-Frame's own VR button: this project is AR-only and the button just
