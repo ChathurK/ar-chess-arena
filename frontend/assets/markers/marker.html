@@ -4,61 +4,116 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hiro marker — AR Chess Arena</title>
+  <link rel="icon" href="../../favicon.ico" />
+  <link rel="stylesheet" href="../../css/style.css" />
   <style>
-    /* A deliberately plain page: its whole job is to put a crisp, high-contrast
-       marker on screen or on paper. Anything decorative near the marker risks
-       confusing the detector, so the area around it is kept empty and white. */
-    body {
-      margin: 0;
-      padding: 28px 20px 40px;
-      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
-      color: #1b1814;
-      background: #fff;
+    /* The marker itself still needs to sit in a plain, high-contrast quiet
+       zone — nothing decorative touches it, and print always forces it back
+       to plain black-on-white, since paper contrast is what the detector
+       reads, not the on-screen theme. Everything else here just borrows the
+       site's existing dark/parchment/amber tokens from style.css. */
+    .marker-page {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px 20px 28px;
       text-align: center;
     }
-    h1 { font-size: 20px; margin: 0 0 6px; }
-    p  { max-width: 46ch; margin: 0 auto 8px; font-size: 14px; line-height: 1.55; color: #555; }
+
+    .marker-page__title {
+      margin: 0;
+      font-size: clamp(22px, 5vw, 30px);
+      font-weight: 750;
+      letter-spacing: -0.3px;
+    }
+
+    .marker-page__text {
+      margin: 0;
+      max-width: 50ch;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--colour-parchment-dim);
+    }
+
     .marker-frame {
       display: inline-block;
-      margin: 24px auto;
-      padding: 26px;           /* the white quiet zone the detector needs */
-      background: #fff;
-      border: 1px solid #ddd;
+      padding: clamp(14px, 3vw, 28px); /* the white quiet zone the detector needs */
+      background: #ffffff;
+      box-shadow: var(--shadow-panel);
     }
-    .marker-frame img { display: block; width: 260px; height: 260px; image-rendering: pixelated; }
-    .fallback { display: none; font-size: 13px; color: #b00; max-width: 46ch; margin: 0 auto; }
-    .fallback a { color: #b00; }
+
+    .marker-frame img {
+      display: block;
+      /* Sized off both axes — 68vh keeps it from overrunning the header on
+         short/wide windows, 85vw keeps a margin on narrow ones — so it fills
+         whichever dimension is actually the constraint, not just the
+         viewport's smaller side. */
+      width: min(85vw, 68vh, 760px);
+      aspect-ratio: 1 / 1;
+      image-rendering: pixelated;
+    }
+
+    .fallback {
+      display: none;
+      font-size: 13px;
+      color: #ffb3a8;
+      max-width: 46ch;
+      margin: 0 auto;
+    }
+
+    .fallback a {
+      color: var(--colour-amber);
+    }
+
     @media print {
-      /* Printing should produce the marker and nothing else. */
-      p, h1, .fallback { display: none; }
-      .marker-frame { border: none; margin: 0; }
+      /* Printing must produce the marker on plain paper and nothing else,
+         regardless of the dark theme used on screen. */
+      body.page--landing {
+        background: #ffffff !important;
+      }
+      .marker-page__title,
+      .marker-page__text,
+      .fallback {
+        display: none;
+      }
+      .marker-frame {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 26px;
+        margin: 0;
+      }
     }
   </style>
 </head>
-<body>
-  <h1>Hiro marker</h1>
-    <div class="marker-layout">
-      <div class="instruction">
-        Open the app or go to the link, then point your camera at this marker to scan it.
-      </div>
-    
-      <div class="marker-frame">
-        <!--
-            The Hiro pattern is the marker AR.js recognises out of the box via
-            `preset="hiro"`, so no pattern file has to be trained or shipped. The
-            image itself is served from the AR.js repository; if it ever fails to
-            load, the message below points at alternatives.
-          -->
-        <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-          alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
-          onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';" />
-      </div>
-  </div>
+<body class="page--landing">
+  <main class="marker-page">
+    <header>
+      <h1 class="marker-page__title">Hiro Marker</h1>
+      <p class="marker-page__text">
+        In puzzle mode, point your camera at this marker to scan it.
+      </p>
+    </header>
 
-  <p class="fallback">
-    The marker image could not be loaded. Search the web for
-    &ldquo;AR.js Hiro marker&rdquo; and display any copy of it — every copy of
-    the Hiro pattern is identical, so any of them will be recognised.
-  </p>
+    <div class="marker-frame">
+      <!--
+          The Hiro pattern is the marker AR.js recognises out of the box via
+          `preset="hiro"`, so no pattern file has to be trained or shipped. The
+          image itself is served from the AR.js repository; if it ever fails to
+          load, the message below points at alternatives.
+        -->
+      <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+        alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
+        onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';" />
+    </div>
+
+    <p class="fallback">
+      The marker image could not be loaded. Search the web for
+      &ldquo;AR.js Hiro marker&rdquo; and display any copy of it — every copy of
+      the Hiro pattern is identical, so any of them will be recognised.
+    </p>
+  </main>
 </body>
 </html>

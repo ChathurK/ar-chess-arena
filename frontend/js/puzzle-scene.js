@@ -95,6 +95,19 @@ function currentPuzzle() {
   return PUZZLES[puzzleSession.puzzleIndex];
 }
 
+/**
+ * Is the puzzle mid-play — that is, is the board something the player is
+ * currently meant to be looking at?
+ *
+ * Losing the marker only matters during these phases. A solved or failed
+ * puzzle has already said its piece, and 'awaiting-marker' is *about* not
+ * having found the marker yet, so none of them should be overwritten by a
+ * "marker lost" report.
+ */
+function isPhaseInPlay(phase) {
+  return phase === 'player-turn' || phase === 'black-replying';
+}
+
 /* ------------------------------------------------------------------------ *
  * Interface helpers
  * ------------------------------------------------------------------------ */
@@ -131,7 +144,16 @@ function refreshStatusPanel() {
     solved: ['Solved', 'status-badge--live'],
     failed: ['Failed', 'status-badge--danger'],
   };
-  const [badgeLabel, badgeModifier] = badgeStates[puzzleSession.phase] || ['—', ''];
+  let [badgeLabel, badgeModifier] = badgeStates[puzzleSession.phase] || ['—', ''];
+
+  // While the marker is out of view the board cannot be seen or tapped, so
+  // reporting "Your move" would be inviting a move the player has no way to
+  // make. The phase itself is untouched — this only changes what is shown —
+  // so play resumes exactly where it left off once the marker is back.
+  if (!puzzleSession.isMarkerVisible && isPhaseInPlay(puzzleSession.phase)) {
+    [badgeLabel, badgeModifier] = ['Marker lost', 'status-badge--danger'];
+  }
+
   pageElements.stateBadge.textContent = badgeLabel;
   pageElements.stateBadge.className = `status-badge ${badgeModifier}`.trim();
 }
@@ -244,8 +266,12 @@ function wireUpMarkerEvents() {
     puzzleSession.isMarkerVisible = true;
     if (puzzleSession.phase === 'awaiting-marker') {
       puzzleSession.phase = 'player-turn';
-      describeCurrentTask();
     }
+    // Always restore the instructions for whatever phase play is in: the
+    // status line may still be holding the "marker lost" text, which is now
+    // stale. Phases that write their own closing message (solved, failed)
+    // are left alone by describeCurrentTask.
+    describeCurrentTask();
     refreshStatusPanel();
   });
 
@@ -256,7 +282,10 @@ function wireUpMarkerEvents() {
       // The position is not lost — only the view of it — so the phase is kept
       // and simply reported differently. Walking around the marker mid-puzzle
       // should never reset progress.
-      setStatusMessage('Marker lost. Point the camera back at it to carry on.');
+      if (isPhaseInPlay(puzzleSession.phase)) {
+        setStatusMessage('Point the camera at the marker again to continue.');
+      }
+      refreshStatusPanel();
     }, MARKER_LOST_GRACE_MS);
   });
 }
@@ -297,6 +326,10 @@ function describeCurrentTask() {
       `You are <strong>White</strong>. Force checkmate in <strong>${puzzle.moveBudget}</strong> ` +
         'moves. Tap a piece, then tap where it should go.'
     );
+    return;
+  }
+  if (puzzleSession.phase === 'black-replying') {
+    setStatusMessage('<strong>Black</strong> is replying…');
   }
 }
 

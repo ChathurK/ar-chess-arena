@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Puzzle Mode — AR Chess Arena</title>
+  <link rel="icon" href="./favicon.ico" />
   <link rel="stylesheet" href="./css/style.css" />
 
   <!--
@@ -27,7 +28,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
 </head>
 
-<body>
+<body class="page--ar">
   <!--
     The AR scene itself. `embedded` keeps A-Frame inside the normal document
     flow so the HTML overlay can sit on top of it, and the VR button is
@@ -69,6 +70,14 @@
        Interface layer — floats above the camera feed
        ================================================================= -->
   <div class="ar-overlay" id="arOverlay">
+    <!-- Wide screens only — see `.overlay-back` in style.css. -->
+    <a class="icon-button overlay-back" href="./index.html" aria-label="Back to menu" title="Back to menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M15 5 8 12l7 7" />
+      </svg>
+    </a>
+
     <div class="panel panel--top">
       <div class="status-row">
         <h1 class="status-row__title" id="puzzleTitle">Loading puzzle…</h1>
@@ -80,17 +89,21 @@
       </p>
     </div>
 
-    <div class="panel panel--bottom">
-      <div class="control-row">
-        <button class="button" id="hintButton" type="button">Hint</button>
-        <button class="button" id="retryButton" type="button">Retry</button>
-        <button class="button button--primary" id="nextButton" type="button">Next puzzle</button>
-        <button class="button button--compact" id="soundButton" type="button" aria-label="Toggle sound">🔊</button>
+    <!-- The toast lives in here rather than loose in the body so it can be
+         anchored to the top of the control panel — see `.overlay-bottom`. -->
+    <div class="overlay-bottom">
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <div class="panel panel--bottom">
+        <div class="control-row">
+          <button class="button" id="hintButton" type="button">Hint</button>
+          <button class="button" id="retryButton" type="button">Retry</button>
+          <button class="button button--primary" id="nextButton" type="button">Next puzzle</button>
+          <button class="button button--compact" id="soundButton" type="button" aria-label="Toggle sound">🔊</button>
+        </div>
       </div>
     </div>
   </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- =================================================================
        Loading curtain — also the tap that unlocks audio
@@ -98,7 +111,29 @@
        Mobile browsers will not start an AudioContext until the user has
        interacted with the page, so the "Start" button doubles as the
        required gesture. -->
-  <div class="curtain" id="loadingCurtain">
+  <div class="curtain curtain--preview" id="loadingCurtain">
+    <a class="icon-button curtain__corner curtain__corner--left" href="./index.html"
+      aria-label="Back to menu" title="Back to menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M15 5 8 12l7 7" />
+      </svg>
+    </a>
+
+    <a class="icon-button curtain__corner curtain__corner--right" href="./assets/markers/marker.html"
+      target="_blank" rel="noopener" aria-label="Show the marker" title="Show the marker">
+      <!-- A QR-style glyph: three finder squares plus a scattering of modules,
+           which reads as "scannable code" at this size without pretending to
+           be the Hiro pattern itself. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <path d="M14 14h3v3h-3zM18 18h3v3h-3z" />
+      </svg>
+    </a>
+
     <h1 class="curtain__title">Puzzle Mode</h1>
     <p class="curtain__text">
       Open the marker on another screen, then scan it with your camera.
@@ -107,8 +142,6 @@
     <p class="curtain__text" id="loadingText">Preparing pieces…</p>
     <div class="curtain__actions">
       <button class="button button--primary" id="startButton" type="button" disabled>Start</button>
-      <a class="button" href="./index.html">Back to menu</a>
-      <a class="button" href="./assets/markers/marker.html" target="_blank" rel="noopener">Show the marker</a>
     </div>
   </div>
 

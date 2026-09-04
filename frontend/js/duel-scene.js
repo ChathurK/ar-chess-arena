@@ -790,6 +790,10 @@ function wireUpControls() {
   pageElements.joinButton.addEventListener('click', () => {
     gameAudio.unlock();
     const typedCode = pageElements.codeInput.value.trim().toUpperCase();
+    if (typedCode === '') {
+      setLobbyStatus('Please enter a game code.');
+      return;
+    }
     if (typedCode.length !== 4) {
       setLobbyStatus('A game code is four characters long.');
       return;
