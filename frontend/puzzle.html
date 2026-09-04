@@ -11,7 +11,7 @@
     ===================================================================
     PUZZLE MODE — marker-based AR
     ===================================================================
-    Point the camera at a Hiro marker and a chessboard appears standing on
+    Point the camera at the chess marker and a chessboard appears standing on
     it, set up in a position that is checkmate in a fixed number of moves.
 
     Library versions are pinned deliberately. A-Frame is held at 1.5.0
@@ -49,7 +49,8 @@
     -->
     <a-marker
       id="chessMarker"
-      preset="hiro"
+      type="pattern"
+      url="./assets/markers/pattern-chess_ar_marker.patt"
       smooth="true"
       smoothCount="8"
       smoothTolerance="0.01"
@@ -85,7 +86,7 @@
         <span class="status-badge" id="stateBadge">Starting</span>
       </div>
       <p class="status-message" id="statusMessage">
-        Point your camera at the Hiro marker to place the board.
+        Point your camera at the chess marker to place the board.
       </p>
     </div>
 
@@ -124,7 +125,7 @@
       target="_blank" rel="noopener" aria-label="Show the marker" title="Show the marker">
       <!-- A QR-style glyph: three finder squares plus a scattering of modules,
            which reads as "scannable code" at this size without pretending to
-           be the Hiro pattern itself. -->
+           be the chess pattern itself. -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <rect x="3" y="3" width="7" height="7" rx="1" />

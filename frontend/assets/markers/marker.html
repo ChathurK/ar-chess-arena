@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hiro marker — AR Chess Arena</title>
+  <title>Chess marker — AR Chess Arena</title>
   <link rel="icon" href="../../favicon.ico" />
   <link rel="stylesheet" href="../../css/style.css" />
   <style>
@@ -91,7 +91,7 @@
 <body class="page--landing">
   <main class="marker-page">
     <header>
-      <h1 class="marker-page__title">Hiro Marker</h1>
+      <h1 class="marker-page__title">Chess Marker</h1>
       <p class="marker-page__text">
         In puzzle mode, point your camera at this marker to scan it.
       </p>
@@ -99,20 +99,19 @@
 
     <div class="marker-frame">
       <!--
-          The Hiro pattern is the marker AR.js recognises out of the box via
-          `preset="hiro"`, so no pattern file has to be trained or shipped. The
-          image itself is served from the AR.js repository; if it ever fails to
-          load, the message below points at alternatives.
+          The custom chess pattern, trained via the AR.js marker training tool
+          into pattern-chess_ar_marker.patt (referenced by puzzle.html). This
+          PNG is the source image that pattern was trained from, served
+          locally rather than fetched from anywhere else.
         -->
-      <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-        alt="The Hiro AR marker: a black square frame containing the HIRO glyph"
+      <img src="./pattern-chess_ar_marker.png"
+        alt="The AR Chess Arena marker: a black square frame containing a chess-piece glyph pattern"
         onerror="document.querySelector('.fallback').style.display='block'; this.style.display='none';" />
     </div>
 
     <p class="fallback">
-      The marker image could not be loaded. Search the web for
-      &ldquo;AR.js Hiro marker&rdquo; and display any copy of it — every copy of
-      the Hiro pattern is identical, so any of them will be recognised.
+      The marker image could not be loaded. Check that
+      pattern-chess_ar_marker.png still exists in this folder.
     </p>
   </main>
 </body>
