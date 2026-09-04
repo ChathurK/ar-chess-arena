@@ -5,7 +5,7 @@
  *
  * HOW MARKER TRACKING WORKS HERE
  * ------------------------------
- * AR.js watches the camera feed for the Hiro pattern and, when it finds it,
+ * AR.js watches the camera feed for the chess marker pattern and, when it finds it,
  * continuously updates the transform of the `<a-marker>` entity so that it
  * matches the marker's real-world position and orientation. Anything parented
  * to that entity therefore appears to stand on the printed marker. All this
@@ -318,7 +318,7 @@ function loadPuzzle(puzzleIndex) {
 function describeCurrentTask() {
   const puzzle = currentPuzzle();
   if (puzzleSession.phase === 'awaiting-marker') {
-    setStatusMessage('Point your camera at the <strong>Hiro marker</strong> to place the board.');
+    setStatusMessage('Point your camera at the <strong>chess marker</strong> to place the board.');
     return;
   }
   if (puzzleSession.phase === 'player-turn') {
