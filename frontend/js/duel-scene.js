@@ -182,6 +182,13 @@ function buildRenderer() {
     renderContext.camera.aspect = window.innerWidth / window.innerHeight;
     renderContext.camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Preview framing depends on the aspect ratio, so it has to be recomputed
+    // when the window is resized or the phone is rotated. In AR the headset
+    // or phone owns the camera and must not be moved from here.
+    if (duelSession.viewMode === 'preview') {
+      positionPreviewCamera();
+    }
   });
 
   return renderer;
@@ -443,6 +450,30 @@ function handleXrSelect(selectEvent) {
  * windows side by side than with two phones. It is also an honest fallback for
  * a device that turns out not to support WebXR at all.
  */
+/**
+ * Where the preview camera sits.
+ *
+ * The distance is derived from a FIXED reference board size, never from the
+ * live slider value. That distinction is the whole reason the size slider
+ * works here: deriving it from the live value moved the camera back in exact
+ * proportion to the board's growth, so the board's angular size — the only
+ * thing a screen can show — stayed constant and the slider appeared dead.
+ * Holding the camera still lets the board's scale be what actually changes,
+ * which is what "size" can mean on a screen with no real world in it.
+ *
+ * A portrait window is the one case that needs care: the horizontal field of
+ * view, not the vertical one, is the limit there, so the camera is pulled
+ * back by the aspect ratio to keep the board from being cropped at the sides.
+ */
+function positionPreviewCamera() {
+  const referenceWidthInMetres = 8 * BOARD_SCALE.DUEL_DEFAULT;
+  const aspect = renderContext.camera.aspect || 1;
+  const framingDistance = referenceWidthInMetres * (aspect < 1 ? 1 / aspect : 1);
+
+  renderContext.camera.position.set(0, framingDistance * 1.05, framingDistance * 1.15);
+  renderContext.camera.lookAt(0, 0, 0);
+}
+
 function startPreviewMode() {
   duelSession.viewMode = 'preview';
   pageElements.lobbyScreen.hidden = true;
@@ -455,9 +486,7 @@ function startPreviewMode() {
   boardObject.visible = true;
   duelSession.isBoardPlaced = true;
 
-  const boardWidthInMetres = 8 * Number(pageElements.sizeSlider.value) / 1000;
-  renderContext.camera.position.set(0, boardWidthInMetres * 1.05, boardWidthInMetres * 1.15);
-  renderContext.camera.lookAt(0, 0, 0);
+  positionPreviewCamera();
 
   pageElements.placeButton.hidden = true;
   pageElements.sizeRow.hidden = false;
@@ -846,13 +875,12 @@ function wireUpControls() {
     const metresPerSquare = Number(pageElements.sizeSlider.value) / 1000;
     duelSession.boardView.object3D.scale.setScalar(metresPerSquare);
 
-    // In preview mode the camera is fixed, so it has to be pulled back as the
-    // board grows or the board would simply overflow the screen.
-    if (duelSession.viewMode === 'preview') {
-      const boardWidthInMetres = 8 * metresPerSquare;
-      renderContext.camera.position.set(0, boardWidthInMetres * 1.05, boardWidthInMetres * 1.15);
-      renderContext.camera.lookAt(0, 0, 0);
-    }
+    // The preview camera is deliberately left where it is. It used to be
+    // pushed back to `8 * metresPerSquare * 1.05/1.15` on every input, but
+    // that is the board's own width times a constant — camera distance and
+    // board size then grew together and the two cancelled exactly, leaving
+    // the rendered board the same size at every setting. See
+    // `positionPreviewCamera`.
   });
 }
 
